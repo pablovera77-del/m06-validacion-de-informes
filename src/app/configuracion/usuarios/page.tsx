@@ -1,15 +1,16 @@
 import { connection } from "next/server";
 import { ACCESO, exigirUsuario, NOMBRE_ROL } from "@/lib/auth/sesion";
 import { hayBaseDeDatos } from "@/lib/db/cliente";
-import { listarUsuarios } from "@/lib/db/usuarios";
+import { emailsConCuenta, listarUsuarios } from "@/lib/db/usuarios";
 import { Aviso, Encabezado, Etiqueta, Tarjeta } from "@/components/ui";
 import { alternarUsuario } from "./acciones";
-import { FormularioUsuario } from "./formulario";
+import { FormularioClave, FormularioUsuario } from "./formulario";
 
 export default async function Usuarios() {
   await connection();
   const yo = await exigirUsuario(ACCESO.usuarios);
   const usuarios = hayBaseDeDatos() ? await listarUsuarios() : [];
+  const conCuenta = hayBaseDeDatos() ? await emailsConCuenta().catch(() => new Set<string>()) : new Set<string>();
   return (
     <>
       <Encabezado
@@ -30,8 +31,11 @@ export default async function Usuarios() {
                     <td className="py-2 pr-3">{u.nombre}</td>
                     <td className="py-2 pr-3 text-xs">{u.email}</td>
                     <td className="py-2 pr-3">{NOMBRE_ROL[u.rol]}{u.medico_id ? <span className="font-mono text-xs text-texto-2"> · {u.medico_id}</span> : null}</td>
-                    <td className="py-2 pr-3">{u.activo ? <Etiqueta tono="ok">Activo</Etiqueta> : <Etiqueta>Inactivo</Etiqueta>}</td>
-                    <td className="py-2 text-right">
+                    <td className="py-2 pr-3">
+                      {!u.activo ? <Etiqueta>Inactivo</Etiqueta> : conCuenta.has(u.email) ? <Etiqueta tono="ok">Puede ingresar</Etiqueta> : <Etiqueta tono="aviso">Sin contraseña</Etiqueta>}
+                    </td>
+                    <td className="flex flex-col items-end gap-1 py-2 text-right">
+                      {u.activo && <FormularioClave email={u.email} tieneCuenta={conCuenta.has(u.email)} />}
                       {u.email !== yo.email && (
                         <form action={alternarUsuario}>
                           <input type="hidden" name="email" value={u.email} />

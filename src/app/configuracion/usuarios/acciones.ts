@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { ACCESO, exigirUsuario } from "@/lib/auth/sesion";
-import { cambiarEstadoUsuario, crearUsuario } from "@/lib/db/usuarios";
+import { cambiarEstadoUsuario, crearUsuario, establecerClave } from "@/lib/db/usuarios";
 
 export interface EstadoUsuario { ok?: string; error?: string }
 
@@ -37,4 +37,19 @@ export async function alternarUsuario(form: FormData) {
   if (email === admin.email) return; // un administrador no se desactiva a sí mismo
   await cambiarEstadoUsuario(email, form.get("activo") === "true", admin.email);
   revalidatePath("/configuracion/usuarios");
+}
+
+const claveSchema = z.object({ email: z.string().email(), clave: z.string().min(10, "Mínimo 10 caracteres.").max(72) });
+
+export async function cambiarClave(_: EstadoUsuario, form: FormData): Promise<EstadoUsuario> {
+  const admin = await exigirUsuario(ACCESO.usuarios);
+  const p = claveSchema.safeParse(Object.fromEntries(form));
+  if (!p.success) return { error: p.error.issues[0]?.message ?? "Revisá los datos." };
+  try {
+    await establecerClave(p.data.email.toLowerCase(), p.data.clave, admin.email);
+    revalidatePath("/configuracion/usuarios");
+    return { ok: "Contraseña establecida." };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Error" };
+  }
 }

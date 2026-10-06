@@ -38,3 +38,36 @@ export async function cambiarEstadoUsuario(email: string, activo: boolean, actor
   if (error) throw error;
   await registrarEvento({ tipo: "usuario_modificado", actor, datos: { usuario: email, activo } });
 }
+
+/** Busca el usuario en Supabase Auth por email (volumen chico: pocas decenas de usuarios). */
+async function idEnAuth(email: string): Promise<string | undefined> {
+  const sb = exigirDb();
+  for (let page = 1; page <= 10; page++) {
+    const { data, error } = await sb.auth.admin.listUsers({ page, perPage: 200 });
+    if (error) throw new Error(`Supabase Auth: ${error.message}`);
+    const u = data.users.find((x) => x.email?.toLowerCase() === email);
+    if (u) return u.id;
+    if (data.users.length < 200) return undefined;
+  }
+}
+
+/** Emails que ya tienen cuenta en Supabase Auth (para mostrar quién puede ingresar). */
+export async function emailsConCuenta(): Promise<Set<string>> {
+  const { data, error } = await exigirDb().auth.admin.listUsers({ page: 1, perPage: 1000 });
+  if (error) throw new Error(`Supabase Auth: ${error.message}`);
+  return new Set(data.users.map((u) => u.email?.toLowerCase() ?? ""));
+}
+
+/**
+ * Establece la contraseña de un usuario habilitado: crea la cuenta en Supabase Auth si no existe
+ * (confirmada, sin envío de correo) o reemplaza la contraseña si ya existe. No se registra la contraseña en ningún lado.
+ */
+export async function establecerClave(email: string, clave: string, actor: string) {
+  const sb = exigirDb();
+  const id = await idEnAuth(email);
+  const { error } = id
+    ? await sb.auth.admin.updateUserById(id, { password: clave })
+    : await sb.auth.admin.createUser({ email, password: clave, email_confirm: true });
+  if (error) throw new Error(`Supabase Auth: ${error.message}`);
+  await registrarEvento({ tipo: "usuario_modificado", actor, datos: { usuario: email, accion: id ? "contraseña_cambiada" : "cuenta_creada" } });
+}

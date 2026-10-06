@@ -13,7 +13,7 @@ export async function proxy(request: NextRequest) {
   if (!hayDb) return NextResponse.next();
 
   const ruta = request.nextUrl.pathname;
-  const publica = ruta === "/login" || ruta.startsWith("/api/validar");
+  const publica = ruta === "/login" || ruta.startsWith("/api/validar") || ruta === "/api/estado";
   if (!clave) {
     return publica ? NextResponse.next() : NextResponse.redirect(new URL("/login", request.url));
   }
