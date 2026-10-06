@@ -1,4 +1,7 @@
 import type { DatasetDemo, InformeDemo } from "../data/demo";
+
+/** Datos mínimos para calcular indicadores: sirven tanto el dataset sintético como los datos reales de la base. */
+export type DatosIndicadores = Pick<DatasetDemo, "informes" | "auditoria">;
 import type { CodigoValidacion, Nivel, TipoEstudio } from "../domain/types";
 import { NIVELES, VALIDACIONES } from "../domain/types";
 
@@ -11,7 +14,7 @@ export interface Filtros {
   nivel?: Nivel;
 }
 
-export function filtrar(ds: DatasetDemo, f: Filtros): InformeDemo[] {
+export function filtrar(ds: DatosIndicadores, f: Filtros): InformeDemo[] {
   return ds.informes.filter(
     (x) =>
       (!f.desde || x.informe.fecha.slice(0, 10) >= f.desde) &&
@@ -124,7 +127,7 @@ export function embudo(xs: InformeDemo[], esCaso: (x: InformeDemo) => boolean) {
 
 const esCritica = (n: Nivel) => n === "naranja" || n === "roja";
 
-export function calcularKpis(ds: DatasetDemo, f: Filtros) {
+export function calcularKpis(ds: DatosIndicadores, f: Filtros) {
   const xs = filtrar(ds, f);
   const alertas = alertasDe(xs, f);
   const conAlerta = xs.filter((x) => alertasDe([x], f).length > 0);

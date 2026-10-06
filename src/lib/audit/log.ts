@@ -31,8 +31,16 @@ export interface EntradaLog {
 
 export const HASH_INICIAL = "0".repeat(64);
 
-function calcularHash(e: Omit<EntradaLog, "hash">): string {
-  return sha256(JSON.stringify([e.secuencia, e.fecha, e.tipo, e.actor, e.informeId ?? null, e.datos, e.hashAnterior]));
+/** JSON con claves ordenadas: la base de datos puede devolver las claves de un objeto en otro orden. */
+export function jsonCanonico(v: unknown): string {
+  if (v === null || typeof v !== "object") return JSON.stringify(v ?? null);
+  if (Array.isArray(v)) return `[${v.map(jsonCanonico).join(",")}]`;
+  const o = v as Record<string, unknown>;
+  return `{${Object.keys(o).filter((k) => o[k] !== undefined).sort().map((k) => `${JSON.stringify(k)}:${jsonCanonico(o[k])}`).join(",")}}`;
+}
+
+export function calcularHash(e: Omit<EntradaLog, "hash">): string {
+  return sha256(jsonCanonico([e.secuencia, e.fecha, e.tipo, e.actor, e.informeId ?? null, e.datos, e.hashAnterior]));
 }
 
 export class LogAuditoria {

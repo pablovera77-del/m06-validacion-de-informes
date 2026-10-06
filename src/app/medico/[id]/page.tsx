@@ -3,15 +3,34 @@ import { notFound } from "next/navigation";
 import { casoPorInforme } from "@/lib/data/bandeja";
 import { NOMBRE_ESTUDIO, NOMBRE_VALIDACION } from "@/lib/domain/types";
 import { validarInforme } from "@/lib/engine/motor";
+import { hayBaseDeDatos } from "@/lib/db/cliente";
+import { obtenerInformeConAlertas } from "@/lib/db/repositorio";
+import type { ResultadoValidacion } from "@/lib/domain/types";
 import { Etiqueta, Tarjeta } from "@/components/ui";
 import { PanelPrefirma } from "./panel-prefirma";
 
 export default async function VistaPrefirma({ params }: PageProps<"/medico/[id]">) {
   const { id } = await params;
-  const caso = casoPorInforme(id);
-  if (!caso) notFound();
-  const { informe, turno } = caso;
-  const r = await validarInforme(informe, { turno, historial: caso.historial });
+  const caso = casoPorInforme(decodeURIComponent(id));
+  let r: { alertas: import("@/lib/domain/types").Alerta[]; incompleto: boolean; versionReglas: string; resultados: Pick<ResultadoValidacion, "validacion" | "estado" | "alertas" | "traza">[] };
+  let informe;
+  let firmado = false;
+  if (caso) {
+    informe = caso.informe;
+    r = await validarInforme(informe, { turno: caso.turno, historial: caso.historial });
+  } else {
+    const real = hayBaseDeDatos() ? await obtenerInformeConAlertas(decodeURIComponent(id)) : undefined;
+    if (!real) notFound();
+    informe = real.informe;
+    firmado = real.informe.estado === "firmado";
+    const res = (real.validacion?.resultados ?? []) as { validacion: ResultadoValidacion["validacion"]; estado: ResultadoValidacion["estado"]; alertas: number; traza?: ResultadoValidacion["traza"] }[];
+    r = {
+      alertas: real.alertas,
+      incompleto: !!real.validacion?.incompleto,
+      versionReglas: real.validacion?.version_reglas ?? "",
+      resultados: res.map((x) => ({ validacion: x.validacion, estado: x.estado, traza: x.traza ?? undefined, alertas: real.alertas.filter((a) => a.validacion === x.validacion) })),
+    };
+  }
 
   const seccion = (titulo: string, texto?: string) => (
     <div>
@@ -43,7 +62,7 @@ export default async function VistaPrefirma({ params }: PageProps<"/medico/[id]"
         </Tarjeta>
 
         <div className="flex flex-col gap-4">
-          <PanelPrefirma informeId={informe.id} alertas={r.alertas} incompleto={r.incompleto} />
+          <PanelPrefirma informeId={informe.id} alertas={r.alertas} incompleto={r.incompleto} firmado={firmado} />
           <Tarjeta titulo="Validaciones ejecutadas">
             <ul className="flex flex-col gap-1.5 text-sm">
               {r.resultados.map((v) => (

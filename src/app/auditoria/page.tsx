@@ -1,5 +1,7 @@
 import { verificarCadena } from "@/lib/audit/log";
 import { datasetDemo } from "@/lib/data/demo";
+import { hayBaseDeDatos } from "@/lib/db/cliente";
+import { leerLog } from "@/lib/db/repositorio";
 import { Encabezado, Etiqueta, Tarjeta, fmtNum } from "@/components/ui";
 
 const NOMBRE_EVENTO: Record<string, string> = {
@@ -17,8 +19,8 @@ const NOMBRE_EVENTO: Record<string, string> = {
 
 export default async function Auditoria({ searchParams }: PageProps<"/auditoria">) {
   const sp = await searchParams;
-  const { log } = await datasetDemo();
-  const entradas = log.listar();
+  const real = hayBaseDeDatos() && sp.fuente !== "demo";
+  const entradas = real ? await leerLog(20000) : (await datasetDemo()).log.listar();
   const v = verificarCadena(entradas);
   const tipo = typeof sp.tipo === "string" ? sp.tipo : "";
   const visibles = entradas.filter((e) => !tipo || e.tipo === tipo).slice(-200).reverse();
@@ -30,7 +32,7 @@ export default async function Auditoria({ searchParams }: PageProps<"/auditoria"
         titulo="Log de auditoría"
         bajada="Registro de solo agregado. Cada entrada guarda el hash de la anterior: si alguien modifica o borra una entrada, la verificación lo detecta (Ley 26.529, art. 13). No contiene nombre, DNI ni fecha de nacimiento de pacientes."
       >
-        <a href="/api/exportar?tipo=log" className="rounded-md border border-marca px-3 py-1.5 text-sm text-marca hover:bg-marca hover:text-white">Exportar con verificación (CSV)</a>
+        <a href={`/api/exportar?tipo=log&fuente=${real ? "real" : "demo"}`} className="rounded-md border border-marca px-3 py-1.5 text-sm text-marca hover:bg-marca hover:text-white">Exportar con verificación (CSV)</a>
       </Encabezado>
 
       <div className="mb-6 grid gap-4 md:grid-cols-[320px_1fr]">
@@ -42,9 +44,12 @@ export default async function Auditoria({ searchParams }: PageProps<"/auditoria"
         </Tarjeta>
         <Tarjeta titulo="Eventos registrados">
           <div className="flex flex-wrap gap-2">
-            <a href="/auditoria"><Etiqueta tono={tipo ? "neutro" : "marca"}>Todos · {fmtNum(entradas.length)}</Etiqueta></a>
+            {hayBaseDeDatos() && (
+              <a href={real ? "/auditoria?fuente=demo" : "/auditoria"}><Etiqueta tono="aviso">{real ? "Ver log de demostración" : "Ver log real"}</Etiqueta></a>
+            )}
+            <a href={real ? "/auditoria" : "/auditoria?fuente=demo"}><Etiqueta tono={tipo ? "neutro" : "marca"}>Todos · {fmtNum(entradas.length)}</Etiqueta></a>
             {conteo.map(([t, n]) => (
-              <a key={t} href={`/auditoria?tipo=${t}`}><Etiqueta tono={tipo === t ? "marca" : "neutro"}>{NOMBRE_EVENTO[t] ?? t} · {fmtNum(n)}</Etiqueta></a>
+              <a key={t} href={`/auditoria?tipo=${t}${real ? "" : "&fuente=demo"}`}><Etiqueta tono={tipo === t ? "marca" : "neutro"}>{NOMBRE_EVENTO[t] ?? t} · {fmtNum(n)}</Etiqueta></a>
             ))}
           </div>
         </Tarjeta>
@@ -70,7 +75,7 @@ export default async function Auditoria({ searchParams }: PageProps<"/auditoria"
           </tbody>
         </table>
       </div>
-      <p className="mt-2 text-xs text-texto-3">Se muestran las últimas 200 entradas. En esta etapa el log vive en memoria del servidor; con la base de datos pasa a almacenamiento persistente de solo agregado.</p>
+      <p className="mt-2 text-xs text-texto-3">Se muestran las últimas 200 entradas. {real ? "Log persistente en la base de datos: la tabla rechaza modificaciones y borrados." : "Log de demostración en memoria del servidor."}</p>
     </>
   );
 }

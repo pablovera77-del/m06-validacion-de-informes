@@ -54,7 +54,7 @@ export interface Informe {
   fecha: string; // ISO
   encabezado: EncabezadoPaciente;
   secciones: SeccionesClinicas;
-  origen: "drive" | "api" | "sintetico";
+  origen: "drive" | "api" | "sintetico" | "carga_manual";
   archivo?: string;
 }
 

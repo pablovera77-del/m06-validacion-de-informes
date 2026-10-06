@@ -1,0 +1,7 @@
+turno_id,apellido_nombre,dni,fecha_nacimiento,tipo_estudio,medico_id
+T-900001,"GÓMEZ, Ana",23.456.789,05/03/1970,mamografia,M04
+T-900002,"SOSA, Laura",27.111.222,12/08/1965,mamografia,M04
+T-900003,"PÉREZ, Graciela",14.987.654,22/11/1952,densitometria,M07
+T-900004,"LÓPEZ, Carlos",30.555.443,01/02/1980,ecografia_abdominal,M11
+T-900005,"DÍAZ, Rosa",18.222.333,09/09/1958,ecografia_abdominal,M11
+T-900006,"MEDINA, Jorge",25.100.111,15/06/1975,radiografia_torax,M15

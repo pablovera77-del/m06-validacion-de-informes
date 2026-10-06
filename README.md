@@ -43,6 +43,21 @@ npm run build
 | `M06_LLM_PROVIDER` | `gateway` para usar el modelo real vía Vercel AI Gateway. Sin definir: simulador local. |
 | `M06_LLM_MODEL` | Modelo, por ejemplo `anthropic/claude-sonnet-5.5`. |
 | `M06_API_TOKEN` | Token de servicio para `POST /api/validar` (etapa 2). |
+| `SUPABASE_URL`, `SUPABASE_SECRET_KEY` | Base de datos (tablas `m06_` con RLS y sin acceso anónimo). Solo servidor. |
+| `GOOGLE_SERVICE_ACCOUNT_JSON`, `M06_DRIVE_CARPETA_INFORMES`, `M06_DRIVE_PLANILLA_TURNOS` | Lectura de PDF y turnos desde Google Drive (solo lectura). |
+
+Ver `.env.example`. El esquema de base de datos está en `supabase/migrations/`.
+
+## Flujo de la etapa 1
+
+1. La planilla de turnos (Google Sheets en `03_Turnos_mock_Visual_Medica`) simula a Visual Medica.
+2. Los informes en PDF se dejan en `01_Informes_a_validar` (o se suben en **Ingreso de informes**).
+3. Se extrae el texto del PDF, se identifica el turno y se ejecutan V1–V5.
+4. El médico revisa las alertas en la vista pre-firma; cada decisión queda en el log inalterable.
+5. Calidad sigue los indicadores en el panel y registra auditorías, acciones correctivas y débitos.
+
+`fixtures/pdf/` tiene 6 informes PDF sintéticos y su planilla de turnos para probar el circuito completo
+(se regeneran con `python3 scripts/generar_pdfs_sinteticos.py fixtures/pdf`).
 
 ## Privacidad
 

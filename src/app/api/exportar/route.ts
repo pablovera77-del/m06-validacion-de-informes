@@ -1,5 +1,8 @@
 import { verificarCadena } from "@/lib/audit/log";
 import { datasetDemo } from "@/lib/data/demo";
+import { hayBaseDeDatos } from "@/lib/db/cliente";
+import { leerLog } from "@/lib/db/repositorio";
+import { datasetReal } from "@/lib/db/panel";
 import { NOMBRE_ESTUDIO, NOMBRE_VALIDACION } from "@/lib/domain/types";
 
 /** CSV con separador ";" y BOM, para que Excel (configuración regional AR) lo abra con tildes y columnas correctas. */
@@ -19,10 +22,10 @@ function csv(filas: (string | number | null | undefined)[][]): string {
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const tipo = url.searchParams.get("tipo") ?? "alertas";
-  const ds = await datasetDemo();
+  const real = hayBaseDeDatos() && url.searchParams.get("fuente") !== "demo";
 
   if (tipo === "log") {
-    const entradas = ds.log.listar();
+    const entradas = real ? await leerLog(50000) : (await datasetDemo()).log.listar();
     const v = verificarCadena(entradas);
     const filas = [
       [`Verificación de cadena: ${v.integro ? "ÍNTEGRA" : "ALTERADA"}`, `Entradas verificadas: ${v.entradasVerificadas}`, `Generado: ${new Date().toISOString()}`],
@@ -32,7 +35,10 @@ export async function GET(req: Request) {
     return new Response(csv(filas), { headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="m06-log-auditoria.csv"` } });
   }
 
-  const mes = url.searchParams.get("mes") ?? ds.hasta.slice(0, 7);
+  const mes = url.searchParams.get("mes") ?? new Date().toISOString().slice(0, 7);
+  const [y, m] = mes.split("-").map(Number);
+  const finMes = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
+  const ds = real ? await datasetReal(`${mes}-01`, finMes) : await datasetDemo();
   const filas: (string | number | undefined)[][] = [
     ["Fecha", "Turno", "Médico", "Tipo de estudio", "Validación", "Nivel", "Alerta", "Estado", "Justificación / motivo", "Versión reglas", "Versión prompt"],
   ];

@@ -6,10 +6,12 @@ import { usePathname } from "next/navigation";
 const SECCIONES = [
   { titulo: "Operación", items: [
     { href: "/", texto: "Inicio" },
+    { href: "/ingesta", texto: "Ingreso de informes (PDF)" },
     { href: "/medico", texto: "Vista del médico (pre-firma)" },
   ] },
   { titulo: "Calidad", items: [
     { href: "/calidad", texto: "Panel de Calidad" },
+    { href: "/calidad/gestion", texto: "Gestión de Calidad" },
     { href: "/pruebas", texto: "Set de prueba" },
     { href: "/auditoria", texto: "Log de auditoría" },
   ] },
@@ -29,7 +31,7 @@ export function Navegacion() {
           <div className="mb-1.5 px-3 text-[11px] uppercase tracking-wider text-texto-3">{s.titulo}</div>
           <ul className="flex flex-col gap-0.5">
             {s.items.map((i) => {
-              const activo = i.href === "/" ? ruta === "/" : ruta.startsWith(i.href);
+              const activo = i.href === "/" ? ruta === "/" : ruta === i.href || (ruta.startsWith(i.href + "/") && !SECCIONES.some((x) => x.items.some((y) => y.href !== i.href && y.href.startsWith(i.href) && ruta.startsWith(y.href))));
               return (
                 <li key={i.href}>
                   <Link

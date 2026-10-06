@@ -22,8 +22,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               </Link>
               <Navegacion />
               <div className="mt-auto rounded-md border border-borde bg-fondo px-3 py-2 text-[11px] leading-relaxed text-texto-2">
-                Etapa 1 · datos sintéticos.<br />
-                Ningún dato corresponde a pacientes reales.
+                Etapa 1 · informes PDF desde Drive o carga manual.<br />
+                Los casos de demostración son sintéticos.
               </div>
             </div>
           </aside>

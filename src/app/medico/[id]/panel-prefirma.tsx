@@ -9,9 +9,10 @@ type Accion = { revisada?: boolean; justificacion?: string; incorrecta?: string 
 
 const ORDEN = { roja: 0, naranja: 1, amarilla: 2, azul: 3 } as const;
 
-export function PanelPrefirma({ informeId, alertas, incompleto }: { informeId: string; alertas: Alerta[]; incompleto: boolean }) {
+export function PanelPrefirma({ informeId, alertas, incompleto, firmado: yaFirmado = false }: { informeId: string; alertas: Alerta[]; incompleto: boolean; firmado?: boolean }) {
   const [acciones, setAcciones] = useState<Record<string, Accion>>({});
-  const [firmado, setFirmado] = useState<null | { registro: string }>(null);
+  const [firmado, setFirmado] = useState<null | { registro: string }>(yaFirmado ? { registro: "Firmado anteriormente." } : null);
+  const [error, setError] = useState<string | null>(null);
   const [abierta, setAbierta] = useState<string | null>(null);
   const ordenadas = [...alertas].sort((a, b) => ORDEN[a.nivel] - ORDEN[b.nivel]);
 
@@ -32,6 +33,7 @@ export function PanelPrefirma({ informeId, alertas, incompleto }: { informeId: s
       body: JSON.stringify({ informeId, acciones: ordenadas.map((a) => ({ alertaId: a.id, validacion: a.validacion, nivel: a.nivel, ...acciones[a.id] })) }),
     });
     const j = await res.json().catch(() => ({}));
+    if (!res.ok) return setError(j.error ?? "No se pudo registrar la firma");
     setFirmado({ registro: j.hash ? `Registrado en el log (entrada ${j.secuencia}, hash ${String(j.hash).slice(0, 12)}…)` : "Registrado" });
   }
 
@@ -119,6 +121,7 @@ export function PanelPrefirma({ informeId, alertas, incompleto }: { informeId: s
                 Para firmar: {faltan.map((a) => (a.nivel === "amarilla" ? "tildá «Revisé»" : "escribí la justificación")).filter((v, i, xs) => xs.indexOf(v) === i).join(" y ")} en las alertas señaladas.
               </p>
             )}
+            {error && <p className="mb-2 text-sm text-roja">{error}</p>}
             <button
               type="button"
               disabled={faltan.length > 0}
