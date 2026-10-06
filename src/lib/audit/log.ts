@@ -16,7 +16,10 @@ export type TipoEvento =
   | "informe_firmado"
   | "informe_corregido"
   | "auditoria_muestra"
-  | "configuracion_cambiada";
+  | "configuracion_cambiada"
+  | "sesion_iniciada"
+  | "usuario_creado"
+  | "usuario_modificado";
 
 export interface EntradaLog {
   secuencia: number;

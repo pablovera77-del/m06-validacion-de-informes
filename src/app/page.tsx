@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { datasetDemo } from "@/lib/data/demo";
 import { ejecutarSetPrueba } from "@/lib/engine/ejecutar-pruebas";
 import { verificarCadena } from "@/lib/audit/log";
@@ -7,10 +8,13 @@ import { reglasVigentes } from "@/lib/config/reglas";
 import { promptVigente } from "@/lib/config/prompts";
 import { NOMBRE_VALIDACION, VALIDACIONES } from "@/lib/domain/types";
 import { Encabezado, Etiqueta, Kpi, Tarjeta, fmtNum, fmtPct } from "@/components/ui";
+import { exigirUsuario } from "@/lib/auth/sesion";
 
 const TIPO_VALIDACION: Record<string, string> = { V1: "Regla", V2: "Regla", V3A: "IA", V3B: "Regla", V4: "Regla", V5: "Regla + IA" };
 
 export default async function Inicio() {
+  const u = await exigirUsuario();
+  if (u.rol === "medico") redirect("/medico"); // el médico entra directo a su bandeja
   const [ds, pruebas] = await Promise.all([datasetDemo(), ejecutarSetPrueba()]);
   const k = calcularKpis(ds, {});
   const v = verificarCadena(ds.log.listar());

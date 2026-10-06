@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { SeccionesClinicas } from "../domain/types";
 import type { MetadatosVersion } from "./reglas";
+import { descripcionProveedor } from "../engine/llm";
 
 /**
  * Prompts versionados de las validaciones que usan IA (HU28).
@@ -54,9 +55,11 @@ export interface ConfigPrompt extends MetadatosVersion {
   reglasNivel: string[];
 }
 
+// Proveedor y modelo efectivos según configuración (API de Anthropic directa, Vercel AI Gateway o simulador).
+const proveedorActivo = descripcionProveedor();
 const MODELO_POR_DEFECTO = {
-  proveedor: "Vercel AI Gateway",
-  nombre: process.env.M06_LLM_MODEL ?? "anthropic/claude-sonnet-5.5",
+  proveedor: proveedorActivo.nombre,
+  nombre: proveedorActivo.modelo,
   temperatura: 0,
 };
 

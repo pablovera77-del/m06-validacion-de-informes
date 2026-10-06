@@ -5,10 +5,12 @@ import { listarArchivos } from "@/lib/db/repositorio";
 import { driveConfigurado } from "@/lib/ingesta/drive";
 import { Aviso, Encabezado, Etiqueta, Tarjeta } from "@/components/ui";
 import { FormulariosIngesta } from "./formularios";
+import { ACCESO, exigirUsuario } from "@/lib/auth/sesion";
 
 export const maxDuration = 300;
 
 export default async function Ingesta() {
+  await exigirUsuario(ACCESO.ingesta);
   await connection(); // siempre en el momento: lee la base de datos
   const conDb = hayBaseDeDatos();
   const archivos = conDb ? await listarArchivos(100).catch(() => []) : [];

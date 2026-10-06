@@ -1,4 +1,5 @@
 import { verificarCadena } from "@/lib/audit/log";
+import { ACCESO, usuarioApi } from "@/lib/auth/sesion";
 import { datasetDemo } from "@/lib/data/demo";
 import { hayBaseDeDatos } from "@/lib/db/cliente";
 import { leerLog } from "@/lib/db/repositorio";
@@ -20,6 +21,8 @@ function csv(filas: (string | number | null | undefined)[][]): string {
  * Los reportes no incluyen nombre, DNI ni fecha de nacimiento del paciente.
  */
 export async function GET(req: Request) {
+  const u = await usuarioApi(ACCESO.calidad);
+  if (u instanceof Response) return u;
   const url = new URL(req.url);
   const tipo = url.searchParams.get("tipo") ?? "alertas";
   const real = hayBaseDeDatos() && url.searchParams.get("fuente") !== "demo";

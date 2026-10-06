@@ -1,10 +1,12 @@
 import { HISTORIAL_REGLAS, reglasVigentes } from "@/lib/config/reglas";
 import { NOMBRE_ESTUDIO, TIPOS_ESTUDIO } from "@/lib/domain/types";
 import { Encabezado, Etiqueta, InsigniaNivel, Tarjeta, fmtPct } from "@/components/ui";
+import { ACCESO, exigirUsuario } from "@/lib/auth/sesion";
 
 const CAMPOS = { tecnica: "Técnica", hallazgos: "Hallazgos", conclusion: "Conclusión", medicoFirmante: "Médico firmante" } as const;
 
-export default function Reglas() {
+export default async function Reglas() {
+  await exigirUsuario(ACCESO.configuracion);
   const r = reglasVigentes();
   return (
     <>

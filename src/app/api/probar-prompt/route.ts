@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ACCESO, usuarioApi } from "@/lib/auth/sesion";
 import { armarEntrada, promptVigente, salidaV3ASchema, salidaV5Schema } from "@/lib/config/prompts";
 import { reglasVigentes } from "@/lib/config/reglas";
 import type { Informe } from "@/lib/domain/types";
@@ -15,6 +16,8 @@ const schema = z.object({
 
 /** Prueba del prompt vigente sobre un texto libre (HU28). No usa datos de pacientes ni escribe en el log. */
 export async function POST(req: Request) {
+  const u = await usuarioApi(ACCESO.configuracion);
+  if (u instanceof Response) return u;
   const p = schema.safeParse(await req.json().catch(() => null));
   if (!p.success) return Response.json({ error: "Solicitud inválida" }, { status: 400 });
   const { validacion, hallazgos, conclusion } = p.data;

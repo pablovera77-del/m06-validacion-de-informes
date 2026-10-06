@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { ACCESO, exigirUsuario } from "@/lib/auth/sesion";
 import { hayBaseDeDatos } from "@/lib/db/cliente";
 import { guardarTurnos, registrarEvento } from "@/lib/db/repositorio";
 import { descargar, driveConfigurado, listarPdfs, planillaTurnosCsv } from "@/lib/ingesta/drive";
@@ -12,10 +13,9 @@ export interface EstadoIngesta {
   resultados?: ResultadoProceso[];
 }
 
-const ACTOR = "consultor-demo"; // Se reemplaza por el usuario autenticado cuando se active el login (HU26).
-
 export async function subirPdfs(_: EstadoIngesta, form: FormData): Promise<EstadoIngesta> {
   if (!hayBaseDeDatos()) return { error: "La base de datos no está configurada." };
+  const { email: ACTOR } = await exigirUsuario(ACCESO.ingesta);
   const archivos = form.getAll("pdf").filter((f): f is File => f instanceof File && f.size > 0);
   if (!archivos.length) return { error: "Elegí al menos un PDF." };
   const resultados: ResultadoProceso[] = [];
@@ -37,6 +37,7 @@ export async function subirPdfs(_: EstadoIngesta, form: FormData): Promise<Estad
 
 export async function subirTurnos(_: EstadoIngesta, form: FormData): Promise<EstadoIngesta> {
   if (!hayBaseDeDatos()) return { error: "La base de datos no está configurada." };
+  const { email: ACTOR } = await exigirUsuario(ACCESO.ingesta);
   const f = form.get("csv");
   if (!(f instanceof File) || !f.size) return { error: "Elegí el archivo CSV de turnos." };
   const { turnos, errores } = leerTurnosCsv(await f.text());
@@ -49,6 +50,7 @@ export async function subirTurnos(_: EstadoIngesta, form: FormData): Promise<Est
 
 export async function sincronizarDrive(): Promise<EstadoIngesta> {
   if (!hayBaseDeDatos()) return { error: "La base de datos no está configurada." };
+  const { email: ACTOR } = await exigirUsuario(ACCESO.ingesta);
   if (!driveConfigurado()) return { error: "Google Drive no está configurado (falta la cuenta de servicio)." };
   try {
     const csv = await planillaTurnosCsv();
@@ -60,7 +62,7 @@ export async function sincronizarDrive(): Promise<EstadoIngesta> {
     const pdfs = await listarPdfs();
     const resultados: ResultadoProceso[] = [];
     for (const a of pdfs.slice(0, 50)) {
-      resultados.push(await procesarPdf({ datos: await descargar(a.id), nombre: a.name, origen: "drive", idArchivo: a.id, modificadoEn: a.modifiedTime, actor: "sincronizacion-drive" }));
+      resultados.push(await procesarPdf({ datos: await descargar(a.id), nombre: a.name, origen: "drive", idArchivo: a.id, modificadoEn: a.modifiedTime, actor: `sincronizacion-drive:${ACTOR}` }));
     }
     revalidatePath("/ingesta");
     revalidatePath("/medico");

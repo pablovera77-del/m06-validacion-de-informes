@@ -8,8 +8,10 @@ import { obtenerInformeConAlertas } from "@/lib/db/repositorio";
 import type { ResultadoValidacion } from "@/lib/domain/types";
 import { Etiqueta, Tarjeta } from "@/components/ui";
 import { PanelPrefirma } from "./panel-prefirma";
+import { ACCESO, exigirUsuario, puedeVerInforme } from "@/lib/auth/sesion";
 
 export default async function VistaPrefirma({ params }: PageProps<"/medico/[id]">) {
+  const u = await exigirUsuario(ACCESO.medico);
   const { id } = await params;
   const caso = casoPorInforme(decodeURIComponent(id));
   let r: { alertas: import("@/lib/domain/types").Alerta[]; incompleto: boolean; versionReglas: string; resultados: Pick<ResultadoValidacion, "validacion" | "estado" | "alertas" | "traza">[] };
@@ -20,7 +22,7 @@ export default async function VistaPrefirma({ params }: PageProps<"/medico/[id]"
     r = await validarInforme(informe, { turno: caso.turno, historial: caso.historial });
   } else {
     const real = hayBaseDeDatos() ? await obtenerInformeConAlertas(decodeURIComponent(id)) : undefined;
-    if (!real) notFound();
+    if (!real || !puedeVerInforme(u, real.informe.medicoId)) notFound();
     informe = real.informe;
     firmado = real.informe.estado === "firmado";
     const res = (real.validacion?.resultados ?? []) as { validacion: ResultadoValidacion["validacion"]; estado: ResultadoValidacion["estado"]; alertas: number; traza?: ResultadoValidacion["traza"] }[];
@@ -62,7 +64,7 @@ export default async function VistaPrefirma({ params }: PageProps<"/medico/[id]"
         </Tarjeta>
 
         <div className="flex flex-col gap-4">
-          <PanelPrefirma informeId={informe.id} alertas={r.alertas} incompleto={r.incompleto} firmado={firmado} />
+          <PanelPrefirma informeId={informe.id} alertas={r.alertas} incompleto={r.incompleto} firmado={firmado} soloLectura={!(ACCESO.firmar as readonly string[]).includes(u.rol)} />
           <Tarjeta titulo="Validaciones ejecutadas">
             <ul className="flex flex-col gap-1.5 text-sm">
               {r.resultados.map((v) => (

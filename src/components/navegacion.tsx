@@ -3,27 +3,34 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const SECCIONES = [
+type Rol = "medico" | "calidad" | "admin";
+const TODOS: Rol[] = ["medico", "calidad", "admin"];
+const GESTION: Rol[] = ["calidad", "admin"];
+
+// Visibilidad del menú por rol. El control de acceso real está en cada página, acción y API.
+const TODAS_SECCIONES: { titulo: string; items: { href: string; texto: string; roles: Rol[] }[] }[] = [
   { titulo: "Operación", items: [
-    { href: "/", texto: "Inicio" },
-    { href: "/ingesta", texto: "Ingreso de informes (PDF)" },
-    { href: "/medico", texto: "Vista del médico (pre-firma)" },
+    { href: "/", texto: "Inicio", roles: GESTION },
+    { href: "/ingesta", texto: "Ingreso de informes (PDF)", roles: GESTION },
+    { href: "/medico", texto: "Vista del médico (pre-firma)", roles: TODOS },
   ] },
   { titulo: "Calidad", items: [
-    { href: "/calidad", texto: "Panel de Calidad" },
-    { href: "/calidad/gestion", texto: "Gestión de Calidad" },
-    { href: "/pruebas", texto: "Set de prueba" },
-    { href: "/auditoria", texto: "Log de auditoría" },
+    { href: "/calidad", texto: "Panel de Calidad", roles: GESTION },
+    { href: "/calidad/gestion", texto: "Gestión de Calidad", roles: GESTION },
+    { href: "/pruebas", texto: "Set de prueba", roles: GESTION },
+    { href: "/auditoria", texto: "Log de auditoría", roles: GESTION },
   ] },
   { titulo: "Configuración", items: [
-    { href: "/configuracion/prompts", texto: "Prompts de IA" },
-    { href: "/configuracion/reglas", texto: "Reglas y umbrales" },
-    { href: "/api-docs", texto: "API (etapa 2)" },
+    { href: "/configuracion/prompts", texto: "Prompts de IA", roles: GESTION },
+    { href: "/configuracion/reglas", texto: "Reglas y umbrales", roles: GESTION },
+    { href: "/configuracion/usuarios", texto: "Usuarios y roles", roles: ["admin"] },
+    { href: "/api-docs", texto: "API (etapa 2)", roles: GESTION },
   ] },
 ];
 
-export function Navegacion() {
+export function Navegacion({ rol }: { rol: Rol }) {
   const ruta = usePathname();
+  const SECCIONES = TODAS_SECCIONES.map((s) => ({ ...s, items: s.items.filter((i) => i.roles.includes(rol)) })).filter((s) => s.items.length);
   return (
     <nav aria-label="Principal" className="flex flex-col gap-5 text-sm">
       {SECCIONES.map((s) => (

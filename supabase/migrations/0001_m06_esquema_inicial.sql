@@ -1,5 +1,5 @@
 -- M06 Validación de Informes · esquema inicial
--- Proyecto Supabase: CDO - CONTACTOS. Tablas con prefijo m06_; no modifica cdo_contactos.
+-- Proyecto Supabase propio: «M06 - Validacion de Informes» (sa-east-1, São Paulo). Tablas con prefijo m06_.
 -- RLS activado sin políticas: solo el servidor (clave secreta de Supabase) accede. Nada queda expuesto a clientes anónimos.
 
 create table if not exists public.m06_turnos (
@@ -34,6 +34,7 @@ create table if not exists public.m06_informes (
 );
 create index if not exists m06_informes_medico_tipo_fecha on public.m06_informes (medico_id, tipo_estudio, fecha desc);
 create index if not exists m06_informes_turno on public.m06_informes (turno_id);
+create index if not exists m06_informes_anterior on public.m06_informes (informe_anterior_id);
 
 create table if not exists public.m06_validaciones (
   id uuid primary key default gen_random_uuid(),
@@ -119,6 +120,7 @@ create table if not exists public.m06_auditoria_muestra (
   auditor text not null,
   fecha timestamptz not null default now()
 );
+create index if not exists m06_auditoria_alerta on public.m06_auditoria_muestra (alerta_id);
 
 create table if not exists public.m06_acciones_correctivas (
   id text primary key,
@@ -153,7 +155,21 @@ create table if not exists public.m06_archivos (
   error text,
   procesado_en timestamptz not null default now()
 );
+create index if not exists m06_archivos_informe on public.m06_archivos (informe_id);
 
+-- Usuarios autorizados y su rol (HU26). La identidad la da Supabase Auth; el rol, esta tabla (clave: email).
+create table if not exists public.m06_usuarios (
+  email text primary key check (email = lower(email)),
+  nombre text not null,
+  rol text not null check (rol in ('medico','calidad','admin')),
+  medico_id text, -- obligatorio para rol médico: vincula con los informes (M01…M21 en datos sintéticos)
+  activo boolean not null default true,
+  creado_por text not null,
+  creado_en timestamptz not null default now(),
+  check (rol <> 'medico' or medico_id is not null)
+);
+
+alter table public.m06_usuarios enable row level security;
 alter table public.m06_turnos enable row level security;
 alter table public.m06_informes enable row level security;
 alter table public.m06_validaciones enable row level security;
@@ -165,5 +181,11 @@ alter table public.m06_debitos enable row level security;
 alter table public.m06_archivos enable row level security;
 
 revoke all on public.m06_turnos, public.m06_informes, public.m06_validaciones, public.m06_alertas, public.m06_log,
-  public.m06_auditoria_muestra, public.m06_acciones_correctivas, public.m06_debitos, public.m06_archivos
+  public.m06_auditoria_muestra, public.m06_acciones_correctivas, public.m06_debitos, public.m06_archivos,
+  public.m06_usuarios
   from anon, authenticated;
+revoke execute on function public.m06_log_control() from public, anon, authenticated;
+
+-- Administrador inicial (la contraseña se crea en Supabase → Authentication; nunca en esta tabla).
+insert into public.m06_usuarios (email, nombre, rol, creado_por) values ('pablovera77@gmail.com', 'Pablo Vera', 'admin', 'alta-inicial')
+  on conflict (email) do nothing;

@@ -5,8 +5,10 @@ import type { FilaAlerta } from "@/lib/db/repositorio";
 import { Aviso, Encabezado, InsigniaNivel, Tarjeta } from "@/components/ui";
 import { FormAccion, FormDebito } from "./formularios";
 import { auditarAlerta } from "./acciones";
+import { ACCESO, exigirUsuario } from "@/lib/auth/sesion";
 
 export default async function GestionCalidad() {
+  await exigirUsuario(ACCESO.calidad);
   await connection(); // siempre en el momento: lee la base de datos
   if (!hayBaseDeDatos()) {
     return (

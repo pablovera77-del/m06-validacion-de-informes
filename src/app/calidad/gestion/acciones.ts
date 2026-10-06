@@ -2,9 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { ACCESO, exigirUsuario } from "@/lib/auth/sesion";
 import { guardarAccionCorrectiva, guardarDebito, guardarMuestraAuditoria } from "@/lib/db/repositorio";
-
-const ACTOR = "calidad-demo"; // se reemplaza por el usuario autenticado (HU26)
 
 export interface Estado { ok?: string; error?: string }
 
@@ -18,6 +17,7 @@ const debitoSchema = z.object({
 });
 
 export async function cargarDebito(_: Estado, form: FormData): Promise<Estado> {
+  const { email: ACTOR } = await exigirUsuario(ACCESO.calidad);
   const p = debitoSchema.safeParse(Object.fromEntries(form));
   if (!p.success) return { error: "Revisá los datos del débito." };
   try {
@@ -40,6 +40,7 @@ const accionSchema = z.object({
 });
 
 export async function cargarAccion(_: Estado, form: FormData): Promise<Estado> {
+  const { email: ACTOR } = await exigirUsuario(ACCESO.calidad);
   const p = accionSchema.safeParse(Object.fromEntries(form));
   if (!p.success) return { error: "Revisá los datos de la acción correctiva." };
   try {
@@ -53,6 +54,7 @@ export async function cargarAccion(_: Estado, form: FormData): Promise<Estado> {
 }
 
 export async function auditarAlerta(form: FormData) {
+  const { email: ACTOR } = await exigirUsuario(ACCESO.calidad);
   const correcta = form.get("correcta") === "si";
   const override = form.get("override");
   await guardarMuestraAuditoria(

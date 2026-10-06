@@ -1,4 +1,5 @@
 import { Aviso, Encabezado, Tarjeta } from "@/components/ui";
+import { ACCESO, exigirUsuario } from "@/lib/auth/sesion";
 
 const EJEMPLO = `POST /api/validar
 Authorization: Bearer <M06_API_TOKEN>
@@ -43,7 +44,8 @@ const RESPUESTA = `200 OK
   "resultados": [ { "validacion": "V1", "estado": "ejecutada", "alertas": [] }, "..." ]
 }`;
 
-export default function ApiDocs() {
+export default async function ApiDocs() {
+  await exigirUsuario(ACCESO.configuracion);
   return (
     <>
       <Encabezado titulo="API de validación (etapa 2)" bajada="Contrato para que el sistema de gestión de imágenes envíe cada informe antes de la firma y reciba las alertas. En la etapa 1 la misma lógica se alimenta desde Google Drive." />

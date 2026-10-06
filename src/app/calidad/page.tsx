@@ -6,6 +6,7 @@ import { calcularKpis, type Filtros } from "@/lib/metrics/kpis";
 import { NIVELES, NOMBRE_ESTUDIO, NOMBRE_VALIDACION, TIPOS_ESTUDIO, VALIDACIONES, type CodigoValidacion, type Nivel, type TipoEstudio } from "@/lib/domain/types";
 import { Aviso, Encabezado, Kpi, Tarjeta, fmtNum, fmtPct } from "@/components/ui";
 import { BarraProporcion, BarrasMensuales, BarrasNivel, GraficoControl, GraficoEmbudo } from "@/components/graficos";
+import { ACCESO, exigirUsuario } from "@/lib/auth/sesion";
 
 /** Etiqueta anónima estable (A, B, … Z, AA…) para no exponer la identidad del médico fuera de Calidad. */
 function anonimo(i: number): string {
@@ -21,6 +22,7 @@ function rangoPorDefecto() {
 const META_PRECISION: Partial<Record<CodigoValidacion, number>> = { V1: 0.8, V4: 0.8, V3A: 0.6 };
 
 export default async function PanelCalidad({ searchParams }: PageProps<"/calidad">) {
+  await exigirUsuario(ACCESO.calidad);
   const sp = await searchParams;
   const str = (k: string) => (typeof sp[k] === "string" && sp[k] ? (sp[k] as string) : undefined);
   const conDb = hayBaseDeDatos();

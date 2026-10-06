@@ -179,9 +179,10 @@ export async function obtenerInformeConAlertas(id: string) {
   return { informe: aInforme(inf as FilaInforme), validacion: val, alertas: ((alertas ?? []) as FilaAlerta[]).map(aAlerta) };
 }
 
-export async function listarInformes(opts: { estado?: string; limite?: number } = {}) {
+export async function listarInformes(opts: { estado?: string; limite?: number; medicoId?: string } = {}) {
   let q = exigirDb().from("m06_informes").select("*").neq("estado", "reemplazado").order("creado_en", { ascending: false }).limit(opts.limite ?? 200);
   if (opts.estado) q = q.eq("estado", opts.estado);
+  if (opts.medicoId) q = q.eq("medico_id", opts.medicoId);
   const { data, error } = await q;
   if (error) throw error;
   return (data as FilaInforme[]).map(aInforme);

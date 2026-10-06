@@ -1,4 +1,5 @@
 import { verificarCadena } from "@/lib/audit/log";
+import { ACCESO, exigirUsuario } from "@/lib/auth/sesion";
 import { datasetDemo } from "@/lib/data/demo";
 import { hayBaseDeDatos } from "@/lib/db/cliente";
 import { leerLog } from "@/lib/db/repositorio";
@@ -15,9 +16,13 @@ const NOMBRE_EVENTO: Record<string, string> = {
   informe_corregido: "Informe corregido",
   auditoria_muestra: "Auditoría por muestreo",
   configuracion_cambiada: "Cambio de configuración",
+  sesion_iniciada: "Inicio de sesión",
+  usuario_creado: "Usuario creado",
+  usuario_modificado: "Usuario modificado",
 };
 
 export default async function Auditoria({ searchParams }: PageProps<"/auditoria">) {
+  await exigirUsuario(ACCESO.calidad);
   const sp = await searchParams;
   const real = hayBaseDeDatos() && sp.fuente !== "demo";
   const entradas = real ? await leerLog(20000) : (await datasetDemo()).log.listar();

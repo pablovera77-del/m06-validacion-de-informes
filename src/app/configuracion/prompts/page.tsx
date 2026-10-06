@@ -2,6 +2,8 @@ import { HISTORIAL_PROMPTS, type ConfigPrompt } from "@/lib/config/prompts";
 import { NOMBRE_VALIDACION } from "@/lib/domain/types";
 import { Aviso, Encabezado, Etiqueta, Tarjeta } from "@/components/ui";
 import { ProbarPrompt } from "./probar";
+import { descripcionProveedor } from "@/lib/engine/llm";
+import { ACCESO, exigirUsuario } from "@/lib/auth/sesion";
 
 const ESTADOS = ["borrador", "en_revision", "aprobada", "vigente", "retirada"] as const;
 
@@ -18,9 +20,10 @@ function FlujoEstados({ actual }: { actual: ConfigPrompt["estado"] }) {
   );
 }
 
-export default function ConfiguracionPrompts() {
+export default async function ConfiguracionPrompts() {
+  await exigirUsuario(ACCESO.configuracion);
   const vigentes = HISTORIAL_PROMPTS.filter((p) => p.estado === "vigente");
-  const proveedorReal = process.env.M06_LLM_PROVIDER === "gateway";
+  const proveedor = descripcionProveedor();
   return (
     <>
       <Encabezado
@@ -29,9 +32,9 @@ export default function ConfiguracionPrompts() {
       />
       <div className="mb-6">
         <Aviso>
-          {proveedorReal
-            ? "Proveedor activo: Vercel AI Gateway. Las validaciones V3A y V5 usan el modelo configurado."
-            : "Proveedor activo: Simulador local (sin IA). Aplica las mismas reglas con expresiones regulares para poder probar sin conexión al modelo. Para usar el modelo real se configura M06_LLM_PROVIDER=gateway en Vercel."}
+          {proveedor.tipo !== "simulador"
+            ? `Proveedor activo: ${proveedor.nombre} · modelo ${proveedor.modelo}. Las validaciones V3A y V5 usan el modelo real; solo se envían las secciones clínicas.`
+            : "Proveedor activo: Simulador local (sin IA). Aplica las mismas reglas con expresiones regulares para poder probar sin conexión al modelo. Para usar el modelo real se configuran en Vercel M06_LLM_PROVIDER=anthropic y ANTHROPIC_API_KEY."}
         </Aviso>
       </div>
 

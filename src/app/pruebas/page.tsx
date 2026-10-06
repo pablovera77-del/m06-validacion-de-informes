@@ -1,8 +1,10 @@
 import { ejecutarSetPrueba } from "@/lib/engine/ejecutar-pruebas";
 import { NOMBRE_VALIDACION } from "@/lib/domain/types";
 import { Encabezado, Etiqueta, InsigniaNivel, Tarjeta } from "@/components/ui";
+import { ACCESO, exigirUsuario } from "@/lib/auth/sesion";
 
 export default async function SetDePrueba() {
+  await exigirUsuario(ACCESO.calidad);
   const r = await ejecutarSetPrueba();
   const ok = r.aprobados === r.total;
   return (

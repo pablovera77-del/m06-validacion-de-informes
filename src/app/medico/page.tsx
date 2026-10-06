@@ -6,25 +6,27 @@ import { validarInforme } from "@/lib/engine/motor";
 import { Encabezado, InsigniaNivel, Etiqueta, Tarjeta } from "@/components/ui";
 import { hayBaseDeDatos } from "@/lib/db/cliente";
 import { listarInformes, resumenAlertas } from "@/lib/db/repositorio";
+import { ACCESO, exigirUsuario } from "@/lib/auth/sesion";
 
 export default async function BandejaMedico() {
   await connection(); // siempre en el momento: lee la base de datos
+  const u = await exigirUsuario(ACCESO.medico);
   const casos = bandejaMedico();
   const filas = await Promise.all(
     casos.map(async (c) => ({ c, r: await validarInforme(c.informe, { turno: c.turno, historial: c.historial }) })),
   );
-  const reales = hayBaseDeDatos() ? await listarInformes({ estado: "pendiente_firma", limite: 100 }).catch(() => []) : [];
+  const reales = hayBaseDeDatos() ? await listarInformes({ estado: "pendiente_firma", limite: 100, medicoId: u.rol === "medico" ? (u.medicoId ?? "—") : undefined }).catch(() => []) : [];
   const resumen = await resumenAlertas(reales.map((r) => r.id)).catch(() => new Map());
   return (
     <>
       {reales.length > 0 && (
-        <Tarjeta titulo="Informes ingresados pendientes de firma" className="mb-8">
+        <Tarjeta titulo={u.rol === "medico" ? `Mis informes pendientes de firma · ${u.nombre}` : "Informes ingresados pendientes de firma"} className="mb-8">
           <ul className="flex flex-col divide-y divide-borde text-sm">
             {reales.map((i) => {
               const r = resumen.get(i.id);
               return (
                 <li key={i.id} className="flex flex-wrap items-center justify-between gap-3 py-2">
-                  <span><span className="font-mono text-xs text-texto-2">{i.turnoId}{i.version > 1 ? ` · v${i.version}` : ""}</span> {i.encabezado.apellidoNombre ?? "—"} · {NOMBRE_ESTUDIO[i.tipoEstudio]}</span>
+                  <span><span className="font-mono text-xs text-texto-2">{i.turnoId}{i.version > 1 ? ` · v${i.version}` : ""}</span> {i.encabezado.apellidoNombre ?? "—"} · {NOMBRE_ESTUDIO[i.tipoEstudio]}{u.rol !== "medico" && <span className="text-xs text-texto-2"> · {i.medicoId}</span>}</span>
                   <span className="flex items-center gap-2">
                     {r?.nivelMaximo ? <InsigniaNivel nivel={r.nivelMaximo} corto /> : <Etiqueta tono="ok">✓ Sin alertas</Etiqueta>}
                     {r?.incompleto && <Etiqueta tono="aviso">Validación incompleta</Etiqueta>}

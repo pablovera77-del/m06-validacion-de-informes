@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { Navegacion } from "@/components/navegacion";
+import { NOMBRE_ROL, usuarioActual } from "@/lib/auth/sesion";
+import { salir } from "./login/acciones";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -9,7 +11,16 @@ export const metadata: Metadata = {
   description: "Control de calidad documental de informes médicos antes de la firma. CDO Suite Digital.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const u = await usuarioActual();
+  if (!u) {
+    // Sin sesión (login): sin menú lateral.
+    return (
+      <html lang="es-AR" className="h-full antialiased">
+        <body className="min-h-full px-4 py-6">{children}</body>
+      </html>
+    );
+  }
   return (
     <html lang="es-AR" className="h-full antialiased">
       <body className="min-h-full">
@@ -20,10 +31,21 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 <Image src="/brand/cdo-logo.png" alt="CDO Centro de Diagnóstico Dr. Orellano" width={1256} height={445} className="h-auto w-40" priority />
                 <div className="mt-3 font-titulo text-sm text-texto-2">M06 · Validación de informes</div>
               </Link>
-              <Navegacion />
-              <div className="mt-auto rounded-md border border-borde bg-fondo px-3 py-2 text-[11px] leading-relaxed text-texto-2">
-                Etapa 1 · informes PDF desde Drive o carga manual.<br />
-                Los casos de demostración son sintéticos.
+              <Navegacion rol={u.rol} />
+              <div className="mt-auto flex flex-col gap-3">
+                <div className="rounded-md border border-borde bg-fondo px-3 py-2 text-xs">
+                  <div className="font-medium">{u.nombre}</div>
+                  <div className="text-texto-2">{NOMBRE_ROL[u.rol]}{u.medicoId ? ` · ${u.medicoId}` : ""}</div>
+                  {!u.demo && (
+                    <form action={salir} className="mt-1.5">
+                      <button className="text-marca underline">Cerrar sesión</button>
+                    </form>
+                  )}
+                </div>
+                <div className="rounded-md border border-borde bg-fondo px-3 py-2 text-[11px] leading-relaxed text-texto-2">
+                  Etapa 1 · informes PDF desde Drive o carga manual.<br />
+                  Los casos de demostración son sintéticos.
+                </div>
               </div>
             </div>
           </aside>

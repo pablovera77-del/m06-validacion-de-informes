@@ -40,13 +40,26 @@ npm run build
 
 | Variable | Uso |
 |---|---|
-| `M06_LLM_PROVIDER` | `gateway` para usar el modelo real vía Vercel AI Gateway. Sin definir: simulador local. |
-| `M06_LLM_MODEL` | Modelo, por ejemplo `anthropic/claude-sonnet-5.5`. |
+| `M06_LLM_PROVIDER` | `anthropic` (API de Anthropic con la clave de CDO) o `gateway` (Vercel AI Gateway). Sin definir: simulador local. |
+| `ANTHROPIC_API_KEY` | Clave de la API de Anthropic, con `M06_LLM_PROVIDER=anthropic`. Solo servidor. |
+| `M06_LLM_MODEL` | Opcional. Por defecto `claude-sonnet-5-5` (Anthropic) o `anthropic/claude-sonnet-5.5` (gateway). |
 | `M06_API_TOKEN` | Token de servicio para `POST /api/validar` (etapa 2). |
-| `SUPABASE_URL`, `SUPABASE_SECRET_KEY` | Base de datos (tablas `m06_` con RLS y sin acceso anónimo). Solo servidor. |
+| `SUPABASE_URL`, `SUPABASE_SECRET_KEY` | Base de datos propia (proyecto «M06 - Validacion de Informes», São Paulo; tablas `m06_` con RLS y sin acceso anónimo). Solo servidor. |
+| `SUPABASE_PUBLISHABLE_KEY` | Login con Supabase Auth. Con base de datos configurada, el login es obligatorio. |
 | `GOOGLE_SERVICE_ACCOUNT_JSON`, `M06_DRIVE_CARPETA_INFORMES`, `M06_DRIVE_PLANILLA_TURNOS` | Lectura de PDF y turnos desde Google Drive (solo lectura). |
 
 Ver `.env.example`. El esquema de base de datos está en `supabase/migrations/`.
+
+## Usuarios y roles (HU26)
+
+| Rol | Accede a |
+|---|---|
+| Médico informante | Solo sus informes (por código de médico): revisión de alertas, override, firma. |
+| Calidad | Ingreso de informes, todos los informes en modo lectura, panel, gestión, log, configuración. |
+| Administrador | Todo lo anterior y **Configuración → Usuarios y roles**. |
+
+La identidad la da Supabase Auth (email y contraseña); el rol, la tabla `m06_usuarios`. Un usuario que existe en Auth
+pero no está en `m06_usuarios` (o está inactivo) no entra. Sin base de datos configurada, la app es una demo abierta.
 
 ## Flujo de la etapa 1
 

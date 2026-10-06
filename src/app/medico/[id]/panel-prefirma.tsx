@@ -9,7 +9,7 @@ type Accion = { revisada?: boolean; justificacion?: string; incorrecta?: string 
 
 const ORDEN = { roja: 0, naranja: 1, amarilla: 2, azul: 3 } as const;
 
-export function PanelPrefirma({ informeId, alertas, incompleto, firmado: yaFirmado = false }: { informeId: string; alertas: Alerta[]; incompleto: boolean; firmado?: boolean }) {
+export function PanelPrefirma({ informeId, alertas, incompleto, firmado: yaFirmado = false, soloLectura = false }: { informeId: string; alertas: Alerta[]; incompleto: boolean; firmado?: boolean; soloLectura?: boolean }) {
   const [acciones, setAcciones] = useState<Record<string, Accion>>({});
   const [firmado, setFirmado] = useState<null | { registro: string }>(yaFirmado ? { registro: "Firmado anteriormente." } : null);
   const [error, setError] = useState<string | null>(null);
@@ -114,6 +114,8 @@ export function PanelPrefirma({ informeId, alertas, incompleto, firmado: yaFirma
       <footer className="border-t border-borde px-5 py-4">
         {firmado ? (
           <p className="text-sm text-ok">✓ Informe firmado. {firmado.registro}</p>
+        ) : soloLectura ? (
+          <p className="text-sm text-texto-2">Vista de solo lectura: la revisión de alertas y la firma las hace el médico informante.</p>
         ) : (
           <>
             {faltan.length > 0 && (
