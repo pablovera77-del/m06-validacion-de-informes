@@ -43,8 +43,8 @@ export type TipoProveedor = "anthropic" | "gateway" | "simulador";
 
 /** Proveedor elegido por configuración. Si falta la clave, cae al simulador para no fallar en silencio con errores de autenticación. */
 export function tipoProveedor(): TipoProveedor {
-  const p = process.env.M06_LLM_PROVIDER;
-  if (p === "anthropic" && process.env.ANTHROPIC_API_KEY) return "anthropic";
+  const p = process.env.M06_LLM_PROVIDER?.trim().toLowerCase();
+  if (p === "anthropic" && process.env.ANTHROPIC_API_KEY?.trim()) return "anthropic";
   if (p === "gateway") return "gateway";
   return "simulador";
 }
@@ -60,7 +60,7 @@ export function descripcionProveedor(): { tipo: TipoProveedor; nombre: string; m
 export function proveedorConfigurado(): ProveedorLlm | null {
   const d = descripcionProveedor();
   if (d.tipo === "anthropic") {
-    const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY?.trim() });
     return new ProveedorReal(d.nombre, d.modelo, anthropic(d.modelo));
   }
   if (d.tipo === "gateway") return new ProveedorReal(d.nombre, d.modelo, d.modelo);
