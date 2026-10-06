@@ -49,7 +49,7 @@ export function FormulariosIngesta({ habilitado, drive }: { habilitado: boolean;
 
       <section className="rounded-lg border border-borde bg-superficie p-5">
         <h2 className="text-base">2 · Subir informes PDF</h2>
-        <p className="mt-1 text-sm text-texto-2">Hasta 20 archivos por envío, 4 MB en total. El número de turno se toma del PDF o del nombre del archivo (por ejemplo T-900001_mamografia.pdf).</p>
+        <p className="mt-1 text-sm text-texto-2">Hasta 20 archivos por envío, 4 MB en total. El número de turno se toma del PDF o del nombre del archivo («Estudio ID», por ejemplo 62425201.pdf).</p>
         <form action={accionPdf} className="mt-3 flex flex-col gap-2">
           <input type="file" name="pdf" accept="application/pdf" multiple disabled={!habilitado} className="text-sm" />
           <button className={boton} disabled={!habilitado || subiendo}>{subiendo ? "Procesando…" : "Validar informes"}</button>

@@ -42,7 +42,7 @@ describe("ingesta de PDF de punta a punta", () => {
   }
 
   it("ecografía con DNI distinto, 'xx mm' y riñón sin medidas", async () => {
-    const { r, guardado } = await procesar("T-900004_ecografia_abdominal.pdf");
+    const { r, guardado } = await procesar("90000004.pdf");
     expect(r.estado).toBe("procesado");
     const v = guardado!.r.alertas.map((a) => `${a.validacion}:${a.nivel}`);
     expect(v).toContain("V4:naranja");
@@ -51,30 +51,30 @@ describe("ingesta de PDF de punta a punta", () => {
   });
 
   it("densitometría T -2,8 informada como osteopenia", async () => {
-    const { guardado } = await procesar("T-900003_densitometria.pdf");
+    const { guardado } = await procesar("90000003.pdf");
     expect(guardado!.r.alertas.map((a) => `${a.validacion}:${a.nivel}`)).toEqual(["V3B:naranja"]);
   });
 
   it("mamografía BI-RADS 1 con nódulo", async () => {
-    const { guardado } = await procesar("T-900002_mamografia.pdf");
+    const { guardado } = await procesar("90000002.pdf");
     expect(guardado!.r.alertas.some((a) => a.validacion === "V3A" && a.nivel === "naranja")).toBe(true);
   });
 
   it("informe correcto no genera alertas y nefrectomía documentada no alerta", async () => {
-    expect((await procesar("T-900001_mamografia.pdf")).guardado!.r.alertas).toEqual([]);
-    expect((await procesar("T-900005_ecografia_abdominal.pdf")).guardado!.r.alertas).toEqual([]);
+    expect((await procesar("90000001.pdf")).guardado!.r.alertas).toEqual([]);
+    expect((await procesar("90000005.pdf")).guardado!.r.alertas).toEqual([]);
   });
 
   it("radiografía sin conclusión y con DNI distinto", async () => {
-    const { guardado } = await procesar("T-900006_radiografia_torax.pdf");
+    const { guardado } = await procesar("90000006.pdf");
     const v = guardado!.r.alertas.map((a) => `${a.validacion}:${a.nivel}`);
     expect(v).toContain("V1:naranja");
     expect(v).toContain("V4:naranja");
   });
 
   it("el log no contiene datos identificatorios del paciente", async () => {
-    await procesar("T-900004_ecografia_abdominal.pdf");
+    await procesar("90000004.pdf");
     const texto = JSON.stringify(mem.eventos);
-    expect(texto).not.toMatch(/30\.555|LÓPEZ|1980/);
+    expect(texto).not.toMatch(/30555|LOPEZ|1980/);
   });
 });

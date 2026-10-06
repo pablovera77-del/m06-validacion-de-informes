@@ -7,21 +7,31 @@ import type { EncabezadoPaciente, SeccionesClinicas } from "../domain/types";
  */
 
 export const ETIQUETAS = {
-  paciente: ["Paciente", "Apellido y nombre", "Nombre y apellido", "Nombre"],
-  dni: ["DNI", "D\\.N\\.I\\.?", "Documento", "Nro\\.? de documento"],
-  fechaNacimiento: ["Fecha de nacimiento", "F\\. ?de nac\\.?", "Nacimiento", "Fecha nac\\.?"],
-  estudio: ["Estudio", "Tipo de estudio", "Práctica", "Prestación"],
-  turno: ["Turno N°", "Turno Nº", "Turno", "N° de turno", "Orden"],
-  fecha: ["Fecha del estudio", "Fecha"],
+  // Formato de exportación de CDO (Visual Medica), validado con informes reales el 06/10/2026:
+  //   Nombre del Paciente / Fecha Nacimiento / Cédula/ID / Fecha del Estudio / Estudio ID / Referido Por / Descripción Estudio
+  paciente: ["Nombre del Paciente", "Paciente", "Apellido y nombre", "Nombre y apellido"],
+  dni: ["Cédula/ID", "C[ée]dula", "DNI", "D\\.N\\.I\\.?", "Documento"],
+  fechaNacimiento: ["Fecha Nacimiento", "Fecha de nacimiento", "F\\. ?de nac\\.?", "Fecha nac\\.?"],
+  estudio: ["Descripción Estudio", "Descripci[óo]n del estudio", "Tipo de estudio"],
+  turno: ["Estudio ID", "Turno N°", "Turno Nº", "N° de turno", "Turno"],
+  fecha: ["Fecha del Estudio", "Fecha del estudio", "Fecha"],
+  // Se reconocen solo para cortar el valor del campo anterior; el médico derivante NO es el informante.
+  referido: ["Referido Por", "Derivado por", "Solicitado por"],
 } as const;
+
+/** Líneas que se descartan antes de leer: pie y encabezado institucional repetido en cada página. */
+export const LINEAS_IGNORADAS: RegExp[] = [/^Av\. ?C[óo]rdoba 262/i, /^P[áa]gina \d+( de \d+)?$/i];
 
 export const TITULOS_SECCION: Record<keyof SeccionesClinicas, string[]> = {
   tecnica: ["TÉCNICA", "TECNICA", "Técnica utilizada", "PROCEDIMIENTO", "MÉTODO"],
-  hallazgos: ["HALLAZGOS", "INFORME", "DESCRIPCIÓN", "DESCRIPCION", "RESULTADOS"],
+  hallazgos: ["HALLAZGOS", "INFORME", "RESULTADOS"],
   conclusion: ["CONCLUSIÓN", "CONCLUSION", "IMPRESIÓN DIAGNÓSTICA", "IMPRESION DIAGNOSTICA", "DIAGNÓSTICO", "DIAGNOSTICO"],
 };
 
 const FIRMA = /^.{0,80}\b(M\.? ?P\.?|M\.? ?N\.?|Matr[íi]cula)\s*(N[°º]\s*)?\d{2,6}.*$/im;
+/** En los informes de CDO la firma es una imagen (sello con nombre y matrícula) precedida por «Atte.». */
+const CIERRE = /^Atte\.?\s*$/im;
+export const FIRMA_EN_IMAGEN = "Firma en imagen (cierre «Atte.»)";
 const PIE = /^(Informe sint[ée]tico|P[áa]gina \d|Este informe|Documento firmado).*$/im;
 
 export interface InformeLeido {
@@ -36,7 +46,11 @@ export interface InformeLeido {
 
 /** Une los cortes de línea del PDF que parten una oración ("midiendo xx\nmm."). */
 export function unirLineas(texto: string): string {
-  const lineas = texto.replace(/\r/g, "").split("\n").map((l) => l.trim());
+  const crudas = texto.replace(/\r/g, "").split("\n").map((l) => l.trim());
+  // Encabezados o pies repetidos en todas las páginas (líneas largas idénticas que aparecen 2+ veces) se descartan.
+  const cuenta = new Map<string, number>();
+  for (const l of crudas) if (l.length > 25) cuenta.set(l, (cuenta.get(l) ?? 0) + 1);
+  const lineas = crudas.filter((l) => !LINEAS_IGNORADAS.some((re) => re.test(l)) && (cuenta.get(l) ?? 0) < 2);
   const out: string[] = [];
   for (const l of lineas) {
     if (!l) continue;
@@ -82,9 +96,11 @@ export function leerInforme(textoPdf: string): InformeLeido {
   const cabecera = texto.slice(0, inicioCuerpo);
   const firma = FIRMA.exec(texto.slice(inicioCuerpo));
   const pie = PIE.exec(texto.slice(inicioCuerpo));
+  const cierre = CIERRE.exec(texto.slice(inicioCuerpo));
   const finCuerpo = Math.min(
     firma ? inicioCuerpo + firma.index : texto.length,
     pie ? inicioCuerpo + pie.index : texto.length,
+    cierre ? inicioCuerpo + cierre.index : texto.length,
   );
 
   const secciones: SeccionesClinicas = {};
@@ -108,7 +124,9 @@ export function leerInforme(textoPdf: string): InformeLeido {
     turnoId: campo(cabecera, ETIQUETAS.turno)?.split(/\s/)[0],
     fechaEstudio: campo(cabecera, ETIQUETAS.fecha),
     secciones,
-    medicoFirmante: firma?.[0].trim(),
+    // Si la firma es una imagen, se registra el cierre: el texto no permite verificar la firma en sí.
+    // En la etapa 2 el firmante lo informa el sistema de origen.
+    medicoFirmante: firma?.[0].trim() ?? (cierre ? FIRMA_EN_IMAGEN : undefined),
     advertencias,
   };
 }

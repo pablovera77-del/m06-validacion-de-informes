@@ -6,7 +6,8 @@ Uso: python3 scripts/generar_pdfs_sinteticos.py <carpeta_salida>
 import csv, os, sys
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, PageBreak
+from reportlab.graphics.shapes import Drawing, PolyLine
 from reportlab.lib import colors
 from reportlab.lib.units import mm
 
@@ -30,46 +31,69 @@ Aorta abdominal de trayecto y calibre conservado."""
 
 CASOS = [
   # archivo, turno, paciente, dni_informe, dni_turno, nac, estudio_codigo, estudio_texto, medico, tecnica, hallazgos, conclusion
-  ("T-900001_mamografia.pdf", "T-900001", "GÓMEZ, Ana", "23.456.789", "23.456.789", "05/03/1970", "mamografia", "Mamografía bilateral", "M04",
+  ("90000001.pdf", "90000001", "GOMEZ ANA BEATRIZ", "23.456.789", "23.456.789", "05/03/1970", "mamografia", "MG MAMOGRAFIA BILATERAL", "M04",
    "Mamografía digital bilateral en proyecciones cráneo-caudal y medio-lateral oblicua.", MAMO_HALL_NORMAL, "Estudio mamográfico sin hallazgos. BI-RADS 1."),
-  ("T-900002_mamografia.pdf", "T-900002", "SOSA, Laura", "27.111.222", "27.111.222", "12/08/1965", "mamografia", "Mamografía bilateral", "M04",
+  ("90000002.pdf", "90000002", "SOSA LAURA INES", "27.111.222", "27.111.222", "12/08/1965", "mamografia", "MG MAMOGRAFIA BILATERAL", "M04",
    "Mamografía digital bilateral en proyecciones cráneo-caudal y medio-lateral oblicua.",
    "Mamas de densidad tipo C. Nódulo de 14 mm de márgenes irregulares en cuadrante superoexterno de mama derecha.", "Estudio mamográfico sin hallazgos. BI-RADS 1."),
-  ("T-900003_densitometria.pdf", "T-900003", "PÉREZ, Graciela", "14.987.654", "14.987.654", "22/11/1952", "densitometria", "Densitometría ósea", "M07",
+  ("90000003.pdf", "90000003", "PEREZ GRACIELA", "14.987.654", "14.987.654", "22/11/1952", "densitometria", "DO DENSITOMETRIA OSEA", "M07",
    "Densitometría ósea por absorciometría dual de rayos X (DXA) de columna lumbar y cadera izquierda.",
    "Columna lumbar L1-L4: DMO 0,812 g/cm². T-score -2,8. Z-score -1,9. Cuello femoral izquierdo: DMO 0,690 g/cm². T-score -2,1.", "Osteopenia."),
-  ("T-900004_ecografia_abdominal.pdf", "T-900004", "LÓPEZ, Carlos", "30.555.444", "30.555.443", "01/02/1980", "ecografia_abdominal", "Ecografía abdominal", "M11",
+  ("90000004.pdf", "90000004", "LOPEZ CARLOS ALBERTO", "30.555.444", "30.555.443", "01/02/1980", "ecografia_abdominal", "US ECOGRAFIA COMPLETA DE ABDOMEN", "M11",
    "Ecografía abdominal con transductor convexo multifrecuencia, en ayunas.", ECO_ABD.format(via="xx", rd="Riñón derecho: sin medidas."),
    "Ecografía abdominal dentro de parámetros normales."),
-  ("T-900005_ecografia_abdominal.pdf", "T-900005", "DÍAZ, Rosa", "18.222.333", "18.222.333", "09/09/1958", "ecografia_abdominal", "Ecografía abdominal", "M11",
+  ("90000005.pdf", "90000005", "DIAZ ROSA", "18.222.333", "18.222.333", "09/09/1958", "ecografia_abdominal", "US ECOGRAFIA COMPLETA DE ABDOMEN", "M11",
    "Ecografía abdominal con transductor convexo multifrecuencia, en ayunas.", ECO_ABD.format(via="4", rd="Riñón derecho: ausente, antecedente de nefrectomía derecha."),
    "Ausencia de riñón derecho por nefrectomía. Resto del estudio sin alteraciones."),
-  ("T-900006_radiografia_torax.pdf", "T-900006", "MEDINA, Jorge", "25.000.111", "25.100.111", "15/06/1975", "radiografia_torax", "Radiografía de tórax", "M15",
+  ("90000006.pdf", "90000006", "MEDINA JORGE", "25.000.111", "25.100.111", "15/06/1975", "radiografia_torax", "RX TORAX FRENTE", "M15",
    "Radiografía de tórax en proyección frente, en bipedestación.",
    "Campos pulmonares sin infiltrados ni consolidaciones. Senos costofrénicos libres. Silueta cardíaca de tamaño normal con índice cardiotorácico de 0,46. Mediastino centrado.", ""),
 ]
 
+DIRECCION = "Av. Córdoba 262 (e) - San Juan - 4933218 - 2644987649"
+
+def pie(canvas, doc):
+    canvas.saveState()
+    canvas.setFont("Times-Roman", 8)
+    canvas.setFillColor(colors.grey)
+    canvas.drawCentredString(A4[0] / 2, 12 * mm, DIRECCION)
+    canvas.restoreState()
+
+def firma():
+    # La firma real es una imagen: se dibuja como trazo (sin texto) para replicar ese caso.
+    d = Drawing(60 * mm, 18 * mm)
+    d.add(PolyLine([0, 20, 20, 40, 35, 10, 55, 35, 75, 15, 100, 30, 140, 25], strokeColor=colors.black, strokeWidth=1.2))
+    return d
+
 def pdf(c):
     archivo, turno, paciente, dni, _, nac, _, estudio, medico, tecnica, hallazgos, conclusion = c
-    doc = SimpleDocTemplate(os.path.join(OUT, archivo), pagesize=A4, leftMargin=20*mm, rightMargin=20*mm, topMargin=15*mm, bottomMargin=15*mm,
+    doc = SimpleDocTemplate(os.path.join(OUT, archivo), pagesize=A4, leftMargin=20*mm, rightMargin=20*mm, topMargin=15*mm, bottomMargin=20*mm,
                             title=f"Informe {turno}", author="CDO (sintético)")
     els = []
     if os.environ.get("CON_LOGO", "1") == "1" and os.path.exists(LOGO):
         els.append(Image(LOGO, width=50*mm, height=50*mm*445/1256, hAlign="LEFT"))
-    els.append(Spacer(1, 4*mm))
     t = Table([
-        ["Paciente:", paciente, "Turno N°:", turno],
-        ["DNI:", dni, "Fecha:", "06/10/2026"],
-        ["Fecha de nacimiento:", nac, "Estudio:", estudio],
-    ], colWidths=[38*mm, 52*mm, 22*mm, 58*mm])
-    t.setStyle(TableStyle([("FONT", (0,0), (-1,-1), "Helvetica", 9), ("FONT", (0,0), (0,-1), "Helvetica-Bold", 9), ("FONT", (2,0), (2,-1), "Helvetica-Bold", 9),
-                           ("BOX", (0,0), (-1,-1), 0.5, colors.HexColor("#A9ABAE")), ("BACKGROUND", (0,0), (-1,-1), colors.HexColor("#F4F5EF"))]))
-    els += [t, Spacer(1, 5*mm)]
-    els += [Paragraph("TÉCNICA:", H), Paragraph(tecnica, P)]
-    els += [Paragraph("HALLAZGOS:", H)] + [Paragraph(l, P) for l in hallazgos.split("\n")]
-    els += [Paragraph("CONCLUSIÓN:", H), Paragraph(conclusion or " ", P)]
-    els += [Spacer(1, 12*mm), Paragraph(f"Médico {medico[1:]} - M.P. {1000 + int(medico[1:])}", P), Paragraph("Informe sintético para pruebas. No corresponde a un paciente real.", ParagraphStyle("n", parent=P, fontSize=7, textColor=colors.grey))]
-    doc.build(els)
+        ["Nombre del Paciente:", paciente, "", ""],
+        ["Fecha Nacimiento:", nac, "Cédula/ID:", dni.replace(".", "")],
+        ["Fecha del Estudio:", "29/09/2026", "Estudio ID:", turno],
+        ["Referido Por:", "DERIVANTE FICTICIO", "", ""],
+        ["Descripción Estudio:", estudio, "", ""],
+    ], colWidths=[38*mm, 62*mm, 24*mm, 46*mm])
+    t.setStyle(TableStyle([("FONT", (0,0), (-1,-1), "Helvetica", 10), ("FONT", (1,0), (1,0), "Helvetica-Bold", 11), ("BOX", (0,0), (-1,-1), 0.8, colors.black)]))
+    els += [t, Spacer(1, 12*mm)]
+    B = lambda titulo, texto: Paragraph(f"<b>{titulo}</b> {texto}", P)
+    els += [B("PROCEDIMIENTO:", tecnica), Spacer(1, 3*mm), Paragraph("<b>INFORME</b>", P), Spacer(1, 2*mm)]
+    for l in hallazgos.split("\n"):
+        if ":" in l and l.split(":")[0].isupper():
+            k, v = l.split(":", 1)
+            els += [B(k + ":", v), Spacer(1, 2*mm)]
+        else:
+            els += [Paragraph(l, P), Spacer(1, 2*mm)]
+    if conclusion:
+        els += [Paragraph("<b>CONCLUSIÓN:</b>", P), Paragraph(conclusion.upper(), P)]
+    els += [PageBreak(), Paragraph("Atte.", P), Spacer(1, 10*mm), firma(),
+            Paragraph("Informe sintético para pruebas. No corresponde a un paciente real.", ParagraphStyle("n", parent=P, fontSize=7, textColor=colors.grey))]
+    doc.build(els, onFirstPage=pie, onLaterPages=pie)
 
 for c in CASOS:
     pdf(c)

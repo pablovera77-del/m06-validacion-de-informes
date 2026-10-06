@@ -53,7 +53,7 @@ export async function procesarPdf(p: {
     const leido = leerInforme(texto);
     base.advertencias.push(...leido.advertencias);
 
-    const turnoId = leido.turnoId ?? /T-\d{3,}/i.exec(p.nombre)?.[0];
+    const turnoId = leido.turnoId ?? /(?:T-)?\d{6,}/i.exec(p.nombre)?.[0];
     if (!turnoId) throw new Error("No se encontró el número de turno ni en el PDF ni en el nombre del archivo");
     const turno: Turno | undefined = await obtenerTurno(turnoId);
     if (!turno) base.advertencias.push(`El turno ${turnoId} no está en la planilla de turnos: V4 alertará «turno no encontrado»`);

@@ -8,9 +8,11 @@ export const TIPOS_ESTUDIO = [
   "ecografia_abdominal",
   "ecografia_renal",
   "ecografia_ginecologica",
+  "ecografia_tiroidea",
   "radiografia_torax",
   "tomografia",
   "resonancia",
+  "otro",
 ] as const;
 export type TipoEstudio = (typeof TIPOS_ESTUDIO)[number];
 
@@ -20,9 +22,11 @@ export const NOMBRE_ESTUDIO: Record<TipoEstudio, string> = {
   ecografia_abdominal: "Ecografía abdominal",
   ecografia_renal: "Ecografía renal",
   ecografia_ginecologica: "Ecografía ginecológica",
+  ecografia_tiroidea: "Ecografía tiroidea",
   radiografia_torax: "Radiografía de tórax",
   tomografia: "Tomografía",
   resonancia: "Resonancia magnética",
+  otro: "Otro estudio",
 };
 
 /** Secciones clínicas del informe. Son lo único que puede enviarse a un modelo de IA. */

@@ -66,15 +66,20 @@ const MEDIDA = /\d+(?:[.,]\d+)?\s*(mm|cm)\b/i;
 
 export function simularV5(s: SeccionesClinicas, organos: OrganoEsperado[]): SalidaV5 {
   const texto = [s.tecnica, s.hallazgos, s.conclusion].filter(Boolean).join("\n");
-  const oraciones = texto.split(/(?<=[.\n])\s*/);
+  const oraciones = texto.split(/(?<=\.)\s+|\n/); // no corta en decimales ("4.9 cm")
   return {
     organos: organos.map((o) => {
       const re = new RegExp(o.patron, "i");
       // Para órganos con lateralidad, también vale la mención conjunta ("riñones", "ambos ovarios") si tiene medida propia.
-      const delOrgano = oraciones.filter((x) => re.test(x));
+      // Un párrafo rotulado con el órgano ("ISTMO: … Midiendo 0.29 cm.") pertenece completo al órgano.
+      const rotulo = new RegExp(`^\\s*(?:${o.patron})\\s*:`, "i");
+      const bloques = texto.split("\n").filter((l) => rotulo.test(l));
+      const delOrgano = [...bloques, ...oraciones.filter((x) => re.test(x))];
       const enTexto = delOrgano.join(" ");
       const ev = delOrgano.slice(0, 1).map((f) => ({ seccion: "hallazgos" as const, fragmento: f.trim() }));
-      const conMedida = delOrgano.find((x) => MEDIDA.test(x) && !/\bx{2,}\b/i.test(x));
+      // Una mención conjunta ("riñón derecho e izquierdo: … 9 mm") no cuenta como medida de cada lado.
+      const conjunta = (x: string) => !!o.lateralidad && /derech[oa]s? e izquierd[oa]s?|ambos/i.test(x);
+      const conMedida = delOrgano.find((x) => MEDIDA.test(x) && !/\bx{2,}\b/i.test(x) && !conjunta(x));
       if (conMedida) return { organoId: o.id, categoria: "medido" as const, medidaEncontrada: MEDIDA.exec(conMedida)?.[0] ?? null, evidencia: [{ seccion: "hallazgos" as const, fragmento: conMedida.trim() }], explicacion: "Medida informada." };
       if (AUSENTE.test(enTexto) || (o.id === "vesicula" && /colecistectomizad/i.test(texto)) || (o.id === "utero" && /histerectomizad/i.test(texto)))
         return { organoId: o.id, categoria: "ausente_documentado" as const, medidaEncontrada: null, evidencia: ev, explicacion: "Ausencia y antecedente documentados." };

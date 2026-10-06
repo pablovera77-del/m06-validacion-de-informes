@@ -108,9 +108,11 @@ export const REGLAS_V1_0: ConfigReglas = {
       ecografia_abdominal: TODOS,
       ecografia_renal: TODOS,
       ecografia_ginecologica: TODOS,
+      ecografia_tiroidea: TODOS,
       radiografia_torax: TODOS,
       tomografia: TODOS,
       resonancia: TODOS,
+      otro: TODOS,
     },
     nivelPorCampo: { tecnica: "amarilla", hallazgos: "naranja", conclusion: "naranja", medicoFirmante: "naranja" },
     minCaracteres: 10,
@@ -126,6 +128,11 @@ export const REGLAS_V1_0: ConfigReglas = {
     organos: {
       ecografia_abdominal: ORGANOS_ABDOMEN,
       ecografia_renal: ORGANOS_ABDOMEN.filter((o) => o.id.startsWith("rinon")),
+      ecografia_tiroidea: [
+        { id: "lobulo_der", nombre: "Lóbulo tiroideo derecho", patron: "l[óo]bulo derecho", lateralidad: "derecho", requiereMedida: true },
+        { id: "lobulo_izq", nombre: "Lóbulo tiroideo izquierdo", patron: "l[óo]bulo izquierdo", lateralidad: "izquierdo", requiereMedida: true },
+        { id: "istmo", nombre: "Istmo", patron: "istmo", requiereMedida: true },
+      ],
       ecografia_ginecologica: [
         { id: "utero", nombre: "Útero", patron: "[úu]tero", requiereMedida: true },
         { id: "ovario_der", nombre: "Ovario derecho", patron: "ovario derecho", lateralidad: "derecho", requiereMedida: true },

@@ -43,10 +43,12 @@ const SINONIMOS_ESTUDIO: [RegExp, TipoEstudio][] = [
   [/DENSITOMETR/, "densitometria"],
   [/ECOGRAF.*(RENAL|RINON|URINARI)/, "ecografia_renal"],
   [/ECOGRAF.*(GINECO|TRANSVAGINAL|PELVI)/, "ecografia_ginecologica"],
+  [/ECOGRAF.*TIROI/, "ecografia_tiroidea"],
   [/ECOGRAF.*ABDOM/, "ecografia_abdominal"],
   [/(RADIOGRAF|RX).*TORAX/, "radiografia_torax"],
   [/(TOMOGRAF|TAC|TC )/, "tomografia"],
   [/(RESONANCIA|RMN|RM )/, "resonancia"],
+  [/^OTRO/, "otro"],
 ];
 
 /** Lleva el texto libre del tipo de estudio al código interno. */
