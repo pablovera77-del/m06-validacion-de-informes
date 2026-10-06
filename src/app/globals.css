@@ -1,0 +1,79 @@
+@import "tailwindcss";
+@import "@fontsource/questrial/400.css";
+@import "@fontsource-variable/inter";
+
+/*
+ * Tokens de marca CDO (extraídos del logo):
+ *   verde oliva #5E6638 · gris medio #848688 · gris claro #A9ABAE
+ * El gris del logo no alcanza contraste para texto: se usan grises más oscuros de la misma familia.
+ * Los colores de alerta son semánticos y no se usan para nada más en la interfaz.
+ */
+:root {
+  --marca: #5e6638;
+  --marca-oscuro: #4a512c;
+  --marca-suave: #eef0e6;
+  --gris-logo: #848688;
+  --gris-claro: #a9abae;
+
+  --fondo: #f7f7f5;
+  --superficie: #ffffff;
+  --borde: #e2e3e0;
+  --texto: #1f2022;
+  --texto-2: #5f6164;
+  --texto-3: #7a7c7f;
+
+  --azul: #2a78d6;
+  --azul-fondo: #eaf2fc;
+  --amarilla: #b07800;
+  --amarilla-marca: #eda100;
+  --amarilla-fondo: #fdf5e1;
+  --naranja: #c25a24;
+  --naranja-marca: #ec835a;
+  --naranja-fondo: #fdeee6;
+  --roja: #b42f2f;
+  --roja-marca: #d03b3b;
+  --roja-fondo: #fbe9e9;
+  --ok: #2f7a3a;
+  --ok-fondo: #e8f3ea;
+}
+
+@theme inline {
+  --color-marca: var(--marca);
+  --color-marca-oscuro: var(--marca-oscuro);
+  --color-marca-suave: var(--marca-suave);
+  --color-fondo: var(--fondo);
+  --color-superficie: var(--superficie);
+  --color-borde: var(--borde);
+  --color-texto: var(--texto);
+  --color-texto-2: var(--texto-2);
+  --color-texto-3: var(--texto-3);
+  --color-azul: var(--azul);
+  --color-azul-fondo: var(--azul-fondo);
+  --color-amarilla: var(--amarilla);
+  --color-amarilla-fondo: var(--amarilla-fondo);
+  --color-naranja: var(--naranja);
+  --color-naranja-fondo: var(--naranja-fondo);
+  --color-roja: var(--roja);
+  --color-roja-fondo: var(--roja-fondo);
+  --color-ok: var(--ok);
+  --color-ok-fondo: var(--ok-fondo);
+  --font-sans: "Inter Variable", system-ui, sans-serif;
+  --font-titulo: "Questrial", "Century Gothic", "Inter Variable", sans-serif;
+}
+
+body {
+  background: var(--fondo);
+  color: var(--texto);
+  font-family: var(--font-sans);
+  font-feature-settings: "tnum" 1;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-titulo);
+  letter-spacing: 0.01em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--marca);
+  outline-offset: 2px;
+}
