@@ -19,8 +19,8 @@ export default async function Ingesta() {
   return (
     <>
       <Encabezado
-        titulo="Ingreso de informes"
-        bajada="Etapa 1: arrastrá los informes PDF exportados de Visual Medica. Se extrae el texto y se ejecutan las validaciones; el resultado se ve en la vista pre-firma. El PDF original nunca se modifica."
+        titulo="Subir informes"
+        bajada="Arrastrá los informes PDF exportados de Visual Medica. Cada uno se lee y se valida en segundos, y el resultado queda listo para revisar antes de la firma."
       />
       {!conDb && (
         <div className="mb-6">

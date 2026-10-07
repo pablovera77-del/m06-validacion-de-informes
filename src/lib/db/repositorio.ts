@@ -293,3 +293,17 @@ export async function guardarMuestraAuditoria(m: { alertaId: string; validacion:
   if (error) throw error;
   await registrarEvento({ tipo: "auditoria_muestra", actor: auditor, datos: { alertaId: m.alertaId, correcta: m.correcta } });
 }
+
+// ---------- Contadores para el menú ----------
+
+/** Pendientes de firma (del médico o de todos) y sin médico asignado. Solo cuenta, no trae datos. */
+export async function contadoresMenu(medicoId?: string): Promise<{ pendientes: number; sinAsignar: number }> {
+  const sb = exigirDb();
+  let q = sb.from("m06_informes").select("id", { count: "exact", head: true }).eq("estado", "pendiente_firma");
+  if (medicoId) q = q.eq("medico_id", medicoId);
+  const [p, s] = await Promise.all([
+    q,
+    medicoId ? Promise.resolve({ count: 0 }) : sb.from("m06_informes").select("id", { count: "exact", head: true }).eq("estado", "pendiente_firma").eq("medico_id", "sin_asignar"),
+  ]);
+  return { pendientes: p.count ?? 0, sinAsignar: s.count ?? 0 };
+}
