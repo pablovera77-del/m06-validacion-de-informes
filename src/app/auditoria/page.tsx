@@ -19,6 +19,7 @@ const NOMBRE_EVENTO: Record<string, string> = {
   sesion_iniciada: "Inicio de sesión",
   usuario_creado: "Usuario creado",
   usuario_modificado: "Usuario modificado",
+  informe_asignado: "Médico asignado al informe",
 };
 
 export default async function Auditoria({ searchParams }: PageProps<"/auditoria">) {

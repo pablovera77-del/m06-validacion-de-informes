@@ -1,5 +1,6 @@
 import "server-only";
 import { normalizarTipoEstudio } from "../domain/normalize";
+import { SIN_ASIGNAR } from "./constantes";
 import type { Informe, ResultadoInforme, Turno } from "../domain/types";
 import { validarInforme } from "../engine/motor";
 import { sha256 } from "../engine/util";
@@ -31,6 +32,8 @@ export interface ResultadoProceso {
  * Procesa un informe PDF: lee el texto, identifica el turno, valida y guarda el resultado.
  * Si el turno ya tenía un informe, el nuevo es una versión corregida (HU27): se vinculan y las alertas
  * anteriores que ya no aparecen quedan como «resueltas».
+ * Sin turno de referencia (planilla o Visual Medica) el informe se valida igual: V4 no se aplica y el médico es
+ * quien lo subió (si es médico) o queda «sin asignar» para que Calidad lo asigne.
  * Nunca modifica el archivo original.
  */
 export async function procesarPdf(p: {
@@ -40,6 +43,8 @@ export async function procesarPdf(p: {
   idArchivo?: string;
   modificadoEn?: string;
   actor: string;
+  /** Código del médico que sube el informe (rol médico): se usa si no hay turno. */
+  medicoQueSube?: string;
 }): Promise<ResultadoProceso> {
   const hashArchivo = sha256(Buffer.from(p.datos).toString("base64"));
   const idArchivo = p.idArchivo ?? `manual-${hashArchivo.slice(0, 24)}`;
@@ -53,13 +58,20 @@ export async function procesarPdf(p: {
     const leido = leerInforme(texto);
     base.advertencias.push(...leido.advertencias);
 
-    const turnoId = leido.turnoId ?? /(?:T-)?\d{6,}/i.exec(p.nombre)?.[0];
-    if (!turnoId) throw new Error("No se encontró el número de turno ni en el PDF ni en el nombre del archivo");
+    // Sin número de estudio en el PDF ni en el nombre: identificador derivado del contenido (mismo PDF → mismo id).
+    const turnoId = leido.turnoId ?? /(?:T-)?\d{6,}/i.exec(p.nombre)?.[0] ?? `SIN-ID-${hashArchivo.slice(0, 10).toUpperCase()}`;
+    if (turnoId.startsWith("SIN-ID-")) base.advertencias.push("El PDF no trae «Estudio ID»: se usó un identificador interno");
     const turno: Turno | undefined = await obtenerTurno(turnoId);
-    if (!turno) base.advertencias.push(`El turno ${turnoId} no está en la planilla de turnos: V4 alertará «turno no encontrado»`);
-    const tipoEstudio = turno?.tipoEstudio ?? normalizarTipoEstudio(leido.encabezado.tipoEstudio);
-    if (!tipoEstudio) throw new Error(`No se pudo determinar el tipo de estudio («${leido.encabezado.tipoEstudio ?? "vacío"}»)`);
-    const medicoId = turno?.medicoId ?? "sin_asignar";
+    if (!turno) base.advertencias.push("Sin turno de referencia: la identidad del paciente (V4) no se verifica");
+    let tipoEstudio = turno?.tipoEstudio ?? normalizarTipoEstudio(leido.encabezado.tipoEstudio);
+    if (!tipoEstudio) {
+      base.advertencias.push(`Tipo de estudio no reconocido («${leido.encabezado.tipoEstudio ?? "vacío"}»): se validó como «otro»`);
+      tipoEstudio = "otro";
+    }
+    const medicoId = turno?.medicoId ?? p.medicoQueSube ?? SIN_ASIGNAR;
+    if (turno && p.medicoQueSube && turno.medicoId !== p.medicoQueSube)
+      base.advertencias.push(`El turno corresponde a otro médico (${turno.medicoId}): el informe quedó asignado a ese médico`);
+    if (medicoId === SIN_ASIGNAR) base.advertencias.push("Sin médico asignado: Calidad debe asignarlo desde el informe");
 
     const previo = await informeVigenteDelTurno(turnoId);
     const version = previo ? previo.version + 1 : 1;
@@ -78,7 +90,8 @@ export async function procesarPdf(p: {
       archivo: p.nombre,
     };
 
-    const historial = await historialMedico(medicoId, tipoEstudio, turnoId);
+    // Sin médico no hay con qué comparar en V2 (duplicado del mismo médico).
+    const historial = medicoId === SIN_ASIGNAR ? [] : await historialMedico(medicoId, tipoEstudio, turnoId);
     const r: ResultadoInforme = await validarInforme(informe, { turno, historial });
     await guardarInformeValidado(informe, r, { archivoDriveId: p.origen === "drive" ? idArchivo : undefined, hashArchivo });
 
@@ -97,11 +110,11 @@ export async function procesarPdf(p: {
       await registrarEvento({ tipo: "informe_corregido", actor: p.actor, informeId: informe.id, datos: { informeAnterior: previo.id, alertasResueltas: resueltas.length } });
     }
 
-    await registrarArchivo({ id: idArchivo, nombre: p.nombre, origen: p.origen, modificadoEn: p.modificadoEn, informeId: informe.id, estado: "procesado", error: base.advertencias.join(" · ") || undefined });
+    await registrarArchivo({ id: idArchivo, nombre: p.nombre, origen: p.origen, modificadoEn: p.modificadoEn, informeId: informe.id, estado: "procesado", error: base.advertencias.join(" · ") || undefined, subidoPor: p.actor });
     return { ...base, estado: "procesado", informeId: informe.id, version, nivelMaximo: r.nivelMaximo, alertas: r.alertas.length };
   } catch (e) {
     const error = e instanceof Error ? e.message : String(e);
-    await registrarArchivo({ id: idArchivo, nombre: p.nombre, origen: p.origen, modificadoEn: p.modificadoEn, estado: "error", error }).catch(() => {});
+    await registrarArchivo({ id: idArchivo, nombre: p.nombre, origen: p.origen, modificadoEn: p.modificadoEn, estado: "error", error, subidoPor: p.actor }).catch(() => {});
     return { ...base, estado: "error", error };
   }
 }

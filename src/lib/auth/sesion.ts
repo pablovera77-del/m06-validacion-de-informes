@@ -22,6 +22,8 @@ export const NOMBRE_ROL: Record<Rol, string> = { medico: "Médico informante", c
 /** Qué roles acceden a cada sección (HU26). El control real se hace en cada página, acción y API. */
 export const ACCESO = {
   ingesta: ["calidad", "admin"],
+  subirInformes: ["medico", "calidad", "admin"],
+  asignarMedico: ["calidad", "admin"],
   medico: ["medico", "calidad", "admin"],
   firmar: ["medico", "admin"],
   calidad: ["calidad", "admin"],

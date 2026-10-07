@@ -61,7 +61,7 @@ export default async function Reglas() {
           <dl className="flex flex-col gap-2 text-sm">
             <div className="flex justify-between"><dt className="text-texto-2">Un dato distinto</dt><dd><InsigniaNivel nivel={r.v4.nivelUnaDiscrepancia} corto /></dd></div>
             <div className="flex justify-between"><dt className="text-texto-2">Más de un dato distinto</dt><dd><InsigniaNivel nivel={r.v4.nivelVariasDiscrepancias} corto /></dd></div>
-            <div className="flex justify-between"><dt className="text-texto-2">Turno no encontrado</dt><dd><InsigniaNivel nivel={r.v4.nivelSinTurno} corto /></dd></div>
+            <div className="flex justify-between"><dt className="text-texto-2">Turno no encontrado</dt><dd>{r.v4.nivelSinTurno ? <InsigniaNivel nivel={r.v4.nivelSinTurno} corto /> : <span className="text-texto-2">No se verifica (sin alerta)</span>}</dd></div>
           </dl>
           <p className="mt-3 text-xs text-texto-2">Compara apellido y nombre, DNI, fecha de nacimiento y tipo de estudio. Antes de comparar normaliza tildes, mayúsculas, orden de nombre y apellido, puntos del DNI y formato de fecha. No usa IA.</p>
         </Tarjeta>

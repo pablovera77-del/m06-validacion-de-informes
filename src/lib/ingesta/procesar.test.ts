@@ -35,8 +35,8 @@ describe("ingesta de PDF de punta a punta", () => {
     for (const t of turnos) mem.turnos.set(t.id, t as Turno);
   });
 
-  async function procesar(nombre: string) {
-    const r = await procesarPdf({ datos: new Uint8Array(readFileSync(path.join(dir, nombre))), nombre, origen: "carga_manual", actor: "test" });
+  async function procesar(nombre: string, medicoQueSube?: string) {
+    const r = await procesarPdf({ datos: new Uint8Array(readFileSync(path.join(dir, nombre))), nombre, origen: "carga_manual", actor: "test", medicoQueSube });
     const guardado = mem.informes.at(-1) as { informe: Informe; r: ResultadoInforme } | undefined;
     return { r, guardado };
   }
@@ -70,6 +70,26 @@ describe("ingesta de PDF de punta a punta", () => {
     const v = guardado!.r.alertas.map((a) => `${a.validacion}:${a.nivel}`);
     expect(v).toContain("V1:naranja");
     expect(v).toContain("V4:naranja");
+  });
+
+  it("sin planilla de turnos: valida igual, V4 no aplica y el informe queda del médico que lo sube", async () => {
+    mem.turnos.clear();
+    const { r, guardado } = await procesar("90000003.pdf", "M07");
+    expect(r.estado).toBe("procesado");
+    expect(guardado!.informe.medicoId).toBe("M07");
+    expect(guardado!.informe.tipoEstudio).toBe("densitometria");
+    expect(guardado!.r.resultados.find((x) => x.validacion === "V4")?.estado).toBe("no_aplica");
+    expect(guardado!.r.incompleto).toBe(false);
+    expect(guardado!.r.alertas.map((a) => `${a.validacion}:${a.nivel}`)).toEqual(["V3B:naranja"]);
+  });
+
+  it("sin turno y subido por Calidad: queda sin médico asignado", async () => {
+    mem.turnos.clear();
+    const { r, guardado } = await procesar("90000006.pdf");
+    expect(guardado!.informe.medicoId).toBe("sin_asignar");
+    expect(r.advertencias.join(" ")).toMatch(/Sin médico asignado/);
+    expect(guardado!.r.alertas.some((a) => a.validacion === "V4")).toBe(false);
+    expect(guardado!.r.alertas.some((a) => a.validacion === "V1")).toBe(true);
   });
 
   it("el log no contiene datos identificatorios del paciente", async () => {

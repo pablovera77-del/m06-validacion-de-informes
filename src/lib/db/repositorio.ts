@@ -226,17 +226,27 @@ export async function archivoYaProcesado(id: string, modificadoEn?: string) {
   return data.estado === "procesado" && (!modificadoEn || new Date(data.modificado_en).getTime() >= new Date(modificadoEn).getTime());
 }
 
-export async function registrarArchivo(a: { id: string; nombre: string; origen: "drive" | "carga_manual"; modificadoEn?: string; informeId?: string; estado: "procesado" | "error" | "ignorado"; error?: string }) {
+export async function registrarArchivo(a: { id: string; nombre: string; origen: "drive" | "carga_manual"; modificadoEn?: string; informeId?: string; estado: "procesado" | "error" | "ignorado"; error?: string; subidoPor?: string }) {
   const { error } = await exigirDb().from("m06_archivos").upsert({
-    id: a.id, nombre: a.nombre, origen: a.origen, modificado_en: a.modificadoEn ?? null, informe_id: a.informeId ?? null, estado: a.estado, error: a.error ?? null, procesado_en: new Date().toISOString(),
+    id: a.id, nombre: a.nombre, origen: a.origen, modificado_en: a.modificadoEn ?? null, informe_id: a.informeId ?? null, estado: a.estado, error: a.error ?? null, procesado_en: new Date().toISOString(), subido_por: a.subidoPor ?? null,
   });
   if (error) throw error;
 }
 
-export async function listarArchivos(limite = 100) {
-  const { data, error } = await exigirDb().from("m06_archivos").select("*").order("procesado_en", { ascending: false }).limit(limite);
+export async function listarArchivos(limite = 100, subidoPor?: string) {
+  let q = exigirDb().from("m06_archivos").select("*").order("procesado_en", { ascending: false }).limit(limite);
+  if (subidoPor) q = q.eq("subido_por", subidoPor);
+  const { data, error } = await q;
   if (error) throw error;
-  return data as { id: string; nombre: string; origen: string; informe_id: string | null; estado: string; error: string | null; procesado_en: string }[];
+  return data as { id: string; nombre: string; origen: string; informe_id: string | null; estado: string; error: string | null; procesado_en: string; subido_por: string | null }[];
+}
+
+/** Calidad o administración asignan el médico de un informe que llegó sin turno. */
+export async function asignarMedico(informeId: string, medicoId: string, actor: string) {
+  const { data, error } = await exigirDb().from("m06_informes").update({ medico_id: medicoId }).eq("id", informeId).select("id, medico_id");
+  if (error) throw error;
+  if (!data?.length) throw new Error("Informe inexistente");
+  await registrarEvento({ tipo: "informe_asignado", actor, informeId, datos: { medicoId } });
 }
 
 // ---------- Datos para el panel de Calidad ----------

@@ -26,7 +26,7 @@ export default async function BandejaMedico() {
               const r = resumen.get(i.id);
               return (
                 <li key={i.id} className="flex flex-wrap items-center justify-between gap-3 py-2">
-                  <span><span className="font-mono text-xs text-texto-2">{i.turnoId}{i.version > 1 ? ` · v${i.version}` : ""}</span> {i.encabezado.apellidoNombre ?? "—"} · {NOMBRE_ESTUDIO[i.tipoEstudio]}{u.rol !== "medico" && <span className="text-xs text-texto-2"> · {i.medicoId}</span>}</span>
+                  <span><span className="font-mono text-xs text-texto-2">{i.turnoId}{i.version > 1 ? ` · v${i.version}` : ""}</span> {i.encabezado.apellidoNombre ?? "—"} · {NOMBRE_ESTUDIO[i.tipoEstudio]}{u.rol !== "medico" && (i.medicoId === "sin_asignar" ? <> <Etiqueta tono="aviso">Sin médico asignado</Etiqueta></> : <span className="text-xs text-texto-2"> · {i.medicoId}</span>)}</span>
                   <span className="flex items-center gap-2">
                     {r?.nivelMaximo ? <InsigniaNivel nivel={r.nivelMaximo} corto /> : <Etiqueta tono="ok">✓ Sin alertas</Etiqueta>}
                     {r?.incompleto && <Etiqueta tono="aviso">Validación incompleta</Etiqueta>}

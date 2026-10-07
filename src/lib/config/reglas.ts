@@ -56,7 +56,8 @@ export interface ConfigReglas extends MetadatosVersion {
   v4: {
     nivelUnaDiscrepancia: Nivel;
     nivelVariasDiscrepancias: Nivel;
-    nivelSinTurno: Nivel;
+    /** Nivel si el informe no tiene turno de referencia. null = V4 no se aplica (identidad sin verificar, sin alerta). */
+    nivelSinTurno: Nivel | null;
   };
   v5: {
     /** Órganos que se espera ver medidos por tipo de estudio. PENDIENTE de validación médica. */
@@ -95,7 +96,7 @@ const ORGANOS_ABDOMEN: OrganoEsperado[] = [
 
 export const REGLAS_V1_0: ConfigReglas = {
   version: "reglas-1.0.0",
-  estado: "vigente",
+  estado: "retirada",
   autor: "Pablo Vera (consultor)",
   aprobadoPor: "Pendiente: Ma. Julia Napoli (Calidad)",
   fecha: "2026-10-06",
@@ -145,8 +146,22 @@ export const REGLAS_V1_0: ConfigReglas = {
   v3a: { nivelInconsistente: "naranja", nivelIndeterminado: "azul" },
 };
 
+/**
+ * 1.1.0: la planilla de turnos pasa a ser opcional en la etapa 1. Sin turno de referencia, V4 no se aplica
+ * (no alerta: el informe muestra «identidad sin verificar») en lugar de alerta naranja.
+ */
+export const REGLAS_V1_1: ConfigReglas = {
+  ...REGLAS_V1_0,
+  version: "reglas-1.1.0",
+  estado: "vigente",
+  fecha: "2026-10-07",
+  vigenteDesde: "2026-10-07",
+  motivo: "Etapa 1 con carga libre de informes: sin turno de Visual Medica, V4 no se aplica en vez de alertar. Con turno, igual que 1.0.0.",
+  v4: { ...REGLAS_V1_0.v4, nivelSinTurno: null },
+};
+
 /** Historial de versiones de reglas. La primera con estado "vigente" es la que se usa. */
-export const HISTORIAL_REGLAS: ConfigReglas[] = [REGLAS_V1_0];
+export const HISTORIAL_REGLAS: ConfigReglas[] = [REGLAS_V1_1, REGLAS_V1_0];
 
 export function reglasVigentes(): ConfigReglas {
   const v = HISTORIAL_REGLAS.find((r) => r.estado === "vigente");

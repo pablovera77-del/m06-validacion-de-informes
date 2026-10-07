@@ -19,7 +19,8 @@ export type TipoEvento =
   | "configuracion_cambiada"
   | "sesion_iniciada"
   | "usuario_creado"
-  | "usuario_modificado";
+  | "usuario_modificado"
+  | "informe_asignado";
 
 export interface EntradaLog {
   secuencia: number;

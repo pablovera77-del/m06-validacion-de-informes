@@ -11,7 +11,7 @@ const GESTION: Rol[] = ["calidad", "admin"];
 const TODAS_SECCIONES: { titulo: string; items: { href: string; texto: string; roles: Rol[] }[] }[] = [
   { titulo: "Operación", items: [
     { href: "/", texto: "Inicio", roles: GESTION },
-    { href: "/ingesta", texto: "Ingreso de informes (PDF)", roles: GESTION },
+    { href: "/ingesta", texto: "Subir informes (PDF)", roles: TODOS },
     { href: "/medico", texto: "Vista del médico (pre-firma)", roles: TODOS },
   ] },
   { titulo: "Calidad", items: [

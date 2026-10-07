@@ -7,32 +7,36 @@ import { guardarTurnos, registrarEvento } from "@/lib/db/repositorio";
 import { descargar, driveConfigurado, listarPdfs, planillaTurnosCsv } from "@/lib/ingesta/drive";
 import { leerTurnosCsv, procesarPdf, type ResultadoProceso } from "@/lib/ingesta/procesar";
 
+const MAX_PDF = 4 * 1024 * 1024;
+
+/**
+ * Sube y valida UN informe PDF. La pantalla de arrastrar y soltar la llama una vez por archivo,
+ * así cada informe muestra su resultado apenas termina y no se supera el límite de tamaño por solicitud.
+ */
+export async function subirUnPdf(form: FormData): Promise<ResultadoProceso> {
+  const f = form.get("pdf");
+  const nombre = f instanceof File ? f.name : "archivo";
+  if (!hayBaseDeDatos()) return { archivo: nombre, estado: "error", error: "La base de datos no está configurada.", advertencias: [] };
+  const u = await exigirUsuario(ACCESO.subirInformes);
+  if (!(f instanceof File) || !f.size) return { archivo: nombre, estado: "error", error: "Archivo vacío", advertencias: [] };
+  if ((f.type && f.type !== "application/pdf") || !/\.pdf$/i.test(f.name)) return { archivo: nombre, estado: "error", error: "No es un PDF", advertencias: [] };
+  if (f.size > MAX_PDF) return { archivo: nombre, estado: "error", error: "Supera 4 MB", advertencias: [] };
+  const r = await procesarPdf({
+    datos: new Uint8Array(await f.arrayBuffer()),
+    nombre: f.name,
+    origen: "carga_manual",
+    actor: u.email,
+    medicoQueSube: u.rol === "medico" ? (u.medicoId ?? undefined) : undefined,
+  });
+  revalidatePath("/ingesta");
+  revalidatePath("/medico");
+  return r;
+}
+
 export interface EstadoIngesta {
   mensaje?: string;
   error?: string;
   resultados?: ResultadoProceso[];
-}
-
-export async function subirPdfs(_: EstadoIngesta, form: FormData): Promise<EstadoIngesta> {
-  if (!hayBaseDeDatos()) return { error: "La base de datos no está configurada." };
-  const { email: ACTOR } = await exigirUsuario(ACCESO.ingesta);
-  const archivos = form.getAll("pdf").filter((f): f is File => f instanceof File && f.size > 0);
-  if (!archivos.length) return { error: "Elegí al menos un PDF." };
-  const resultados: ResultadoProceso[] = [];
-  for (const f of archivos.slice(0, 20)) {
-    if (f.type && f.type !== "application/pdf") {
-      resultados.push({ archivo: f.name, estado: "error", error: "No es un PDF", advertencias: [] });
-      continue;
-    }
-    if (f.size > 4 * 1024 * 1024) {
-      resultados.push({ archivo: f.name, estado: "error", error: "Supera 4 MB", advertencias: [] });
-      continue;
-    }
-    resultados.push(await procesarPdf({ datos: new Uint8Array(await f.arrayBuffer()), nombre: f.name, origen: "carga_manual", actor: ACTOR }));
-  }
-  revalidatePath("/ingesta");
-  revalidatePath("/medico");
-  return { mensaje: `${resultados.filter((r) => r.estado === "procesado").length} de ${resultados.length} procesados`, resultados };
 }
 
 export async function subirTurnos(_: EstadoIngesta, form: FormData): Promise<EstadoIngesta> {

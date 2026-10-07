@@ -21,6 +21,14 @@ export function validarIdentidad(
   reglas: ConfigReglas,
 ): ResultadoValidacion {
   const turno = ctx.turno;
+  if (!turno && reglas.v4.nivelSinTurno === null) {
+    return {
+      validacion: "V4",
+      estado: "no_aplica",
+      motivo: "Sin turno de referencia (Visual Medica): la identidad del paciente no se verificó.",
+      alertas: [],
+    };
+  }
   if (!turno) {
     return {
       validacion: "V4",
@@ -29,7 +37,7 @@ export function validarIdentidad(
         crearAlerta({
           informeId: informe.id,
           validacion: "V4",
-          nivel: reglas.v4.nivelSinTurno,
+          nivel: reglas.v4.nivelSinTurno!,
           titulo: "No se encontró el turno asociado",
           detalle: `No hay un turno con el identificador ${informe.turnoId} en el sistema de origen. No se pudo verificar la identidad del paciente.`,
           versionReglas: reglas.version,

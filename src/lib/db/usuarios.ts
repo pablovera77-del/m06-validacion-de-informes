@@ -71,3 +71,10 @@ export async function establecerClave(email: string, clave: string, actor: strin
   if (error) throw new Error(`Supabase Auth: ${error.message}`);
   await registrarEvento({ tipo: "usuario_modificado", actor, datos: { usuario: email, accion: id ? "contraseña_cambiada" : "cuenta_creada" } });
 }
+
+/** Médicos habilitados (para asignar informes que llegaron sin turno). */
+export async function listarMedicos(): Promise<{ medicoId: string; nombre: string }[]> {
+  const { data, error } = await exigirDb().from("m06_usuarios").select("nombre, medico_id").eq("rol", "medico").eq("activo", true).order("medico_id");
+  if (error) throw error;
+  return (data ?? []).map((m) => ({ medicoId: m.medico_id as string, nombre: m.nombre as string }));
+}

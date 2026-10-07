@@ -9,12 +9,15 @@ import type { ResultadoValidacion } from "@/lib/domain/types";
 import { Etiqueta, Tarjeta } from "@/components/ui";
 import { PanelPrefirma } from "./panel-prefirma";
 import { ACCESO, exigirUsuario, puedeVerInforme } from "@/lib/auth/sesion";
+import { SIN_ASIGNAR } from "@/lib/ingesta/constantes";
+import { listarMedicos } from "@/lib/db/usuarios";
+import { asignar } from "./acciones";
 
 export default async function VistaPrefirma({ params }: PageProps<"/medico/[id]">) {
   const u = await exigirUsuario(ACCESO.medico);
   const { id } = await params;
   const caso = casoPorInforme(decodeURIComponent(id));
-  let r: { alertas: import("@/lib/domain/types").Alerta[]; incompleto: boolean; versionReglas: string; resultados: Pick<ResultadoValidacion, "validacion" | "estado" | "alertas" | "traza">[] };
+  let r: { alertas: import("@/lib/domain/types").Alerta[]; incompleto: boolean; versionReglas: string; resultados: Pick<ResultadoValidacion, "validacion" | "estado" | "alertas" | "traza" | "motivo">[] };
   let informe;
   let firmado = false;
   if (caso) {
@@ -25,14 +28,18 @@ export default async function VistaPrefirma({ params }: PageProps<"/medico/[id]"
     if (!real || !puedeVerInforme(u, real.informe.medicoId)) notFound();
     informe = real.informe;
     firmado = real.informe.estado === "firmado";
-    const res = (real.validacion?.resultados ?? []) as { validacion: ResultadoValidacion["validacion"]; estado: ResultadoValidacion["estado"]; alertas: number; traza?: ResultadoValidacion["traza"] }[];
+    const res = (real.validacion?.resultados ?? []) as { validacion: ResultadoValidacion["validacion"]; estado: ResultadoValidacion["estado"]; alertas: number; traza?: ResultadoValidacion["traza"]; motivo?: string | null }[];
     r = {
       alertas: real.alertas,
       incompleto: !!real.validacion?.incompleto,
       versionReglas: real.validacion?.version_reglas ?? "",
-      resultados: res.map((x) => ({ validacion: x.validacion, estado: x.estado, traza: x.traza ?? undefined, alertas: real.alertas.filter((a) => a.validacion === x.validacion) })),
+      resultados: res.map((x) => ({ validacion: x.validacion, estado: x.estado, traza: x.traza ?? undefined, motivo: x.motivo ?? undefined, alertas: real.alertas.filter((a) => a.validacion === x.validacion) })),
     };
   }
+
+  // Calidad y Administración pueden asignar o reasignar el médico de un informe real (no en los casos de demostración).
+  const asignable = !caso && !firmado && (ACCESO.asignarMedico as readonly string[]).includes(u.rol);
+  const medicos = asignable ? await listarMedicos().catch(() => []) : [];
 
   const seccion = (titulo: string, texto?: string) => (
     <div>
@@ -64,6 +71,23 @@ export default async function VistaPrefirma({ params }: PageProps<"/medico/[id]"
         </Tarjeta>
 
         <div className="flex flex-col gap-4">
+          {asignable && (
+            <Tarjeta titulo="Médico informante">
+              {informe.medicoId === SIN_ASIGNAR ? (
+                <p className="mb-2 text-sm text-texto-2">Este informe llegó sin turno y no tiene médico asignado. Asignalo para que aparezca en su bandeja.</p>
+              ) : (
+                <p className="mb-2 text-sm text-texto-2">Asignado a <span className="font-mono">{informe.medicoId}</span>.</p>
+              )}
+              <form action={asignar} className="flex flex-wrap items-center gap-2">
+                <input type="hidden" name="informeId" value={informe.id} />
+                <select name="medicoId" defaultValue={informe.medicoId === SIN_ASIGNAR ? "" : informe.medicoId} required className="rounded-md border border-borde bg-superficie px-2 py-1.5 text-sm">
+                  <option value="" disabled>Elegí el médico…</option>
+                  {medicos.map((m) => <option key={m.medicoId} value={m.medicoId}>{m.medicoId} · {m.nombre}</option>)}
+                </select>
+                <button className="rounded-md bg-marca px-3 py-1.5 text-sm text-white hover:bg-marca-oscuro">{informe.medicoId === SIN_ASIGNAR ? "Asignar" : "Reasignar"}</button>
+              </form>
+            </Tarjeta>
+          )}
           <PanelPrefirma informeId={informe.id} alertas={r.alertas} incompleto={r.incompleto} firmado={firmado} soloLectura={!(ACCESO.firmar as readonly string[]).includes(u.rol)} />
           <Tarjeta titulo="Validaciones ejecutadas">
             <ul className="flex flex-col gap-1.5 text-sm">
@@ -73,7 +97,7 @@ export default async function VistaPrefirma({ params }: PageProps<"/medico/[id]"
                   {v.estado === "ejecutada" ? (
                     <Etiqueta tono={v.alertas.length ? "neutro" : "ok"}>{v.alertas.length ? `${v.alertas.length} alerta${v.alertas.length > 1 ? "s" : ""}` : "OK"}</Etiqueta>
                   ) : v.estado === "no_aplica" ? (
-                    <Etiqueta>No aplica</Etiqueta>
+                    <span title={v.motivo}><Etiqueta>{v.validacion === "V4" ? "Identidad sin verificar" : "No aplica"}</Etiqueta></span>
                   ) : (
                     <Etiqueta tono="aviso" >No ejecutada</Etiqueta>
                   )}
@@ -88,6 +112,9 @@ export default async function VistaPrefirma({ params }: PageProps<"/medico/[id]"
                   </p>
                 ))}
               </div>
+            )}
+            {r.resultados.some((v) => v.validacion === "V4" && v.estado === "no_aplica") && (
+              <p className="mt-3 text-xs text-texto-2">V4: no hay turno de referencia de Visual Medica, así que no se cruzaron nombre, DNI y fecha de nacimiento. Verificalos a mano antes de firmar.</p>
             )}
             <p className="mt-3 text-xs text-texto-3">Reglas {r.versionReglas}</p>
           </Tarjeta>
