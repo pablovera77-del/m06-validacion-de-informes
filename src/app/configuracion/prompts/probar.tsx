@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 const EJEMPLOS = {
@@ -13,11 +14,12 @@ const EJEMPLOS = {
   },
 };
 
-/** "Probar con un caso": ejecuta el prompt vigente sobre un texto, sin registrar nada en el log real. */
-export function ProbarPrompt({ validacion }: { validacion: "V3A" | "V5" }) {
+/** "Probar con un caso": ejecuta el prompt (vigente o un borrador) sobre un texto, sin datos de pacientes. */
+export function ProbarPrompt({ validacion, promptId, version }: { validacion: "V3A" | "V5"; promptId?: string; version?: string }) {
+  const router = useRouter();
   const [hallazgos, setHallazgos] = useState(EJEMPLOS[validacion].hallazgos);
   const [conclusion, setConclusion] = useState(EJEMPLOS[validacion].conclusion);
-  const [res, setRes] = useState<null | { entrada: string; salida: unknown; alertas: { nivel: string; titulo: string }[]; proveedor: string }>(null);
+  const [res, setRes] = useState<null | { entrada: string; salida: unknown; alertas: { nivel: string; titulo: string }[]; proveedor: string; probado?: boolean }>(null);
   const [cargando, setCargando] = useState(false);
 
   async function probar() {
@@ -25,15 +27,17 @@ export function ProbarPrompt({ validacion }: { validacion: "V3A" | "V5" }) {
     const r = await fetch("/api/probar-prompt", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ validacion, hallazgos, conclusion }),
+      body: JSON.stringify({ validacion, hallazgos, conclusion, promptId }),
     });
-    setRes(await r.json());
+    const j = await r.json();
+    setRes(j);
     setCargando(false);
+    if (j.probado) router.refresh(); // habilita «Aprobar y activar»
   }
 
   return (
     <section className="rounded-lg border border-borde bg-superficie p-5">
-      <h2 className="mb-3 text-base">Probar con un caso</h2>
+      <h2 className="mb-3 text-base">{promptId ? `Probar el borrador ${version ?? ""}` : "Probar la versión vigente"}</h2>
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="flex flex-col gap-3">
           <label className="flex flex-col gap-1 text-xs text-texto-2">Hallazgos
@@ -43,7 +47,7 @@ export function ProbarPrompt({ validacion }: { validacion: "V3A" | "V5" }) {
             <textarea rows={2} value={conclusion} onChange={(e) => setConclusion(e.target.value)} className="rounded border border-borde p-2 text-sm text-texto" />
           </label>
           <button onClick={probar} disabled={cargando} className="self-start rounded-md bg-marca px-4 py-1.5 text-sm text-white hover:bg-marca-oscuro disabled:opacity-50">
-            {cargando ? "Ejecutando…" : "Ejecutar prompt vigente"}
+            {cargando ? "Ejecutando…" : promptId ? "Probar borrador" : "Probar versión vigente"}
           </button>
           <p className="text-xs text-texto-3">No se usa ningún dato de paciente y no se registra en el log de producción.</p>
         </div>

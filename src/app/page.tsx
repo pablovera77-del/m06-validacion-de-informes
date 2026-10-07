@@ -5,7 +5,7 @@ import { ejecutarSetPrueba } from "@/lib/engine/ejecutar-pruebas";
 import { verificarCadena } from "@/lib/audit/log";
 import { calcularKpis } from "@/lib/metrics/kpis";
 import { reglasVigentes } from "@/lib/config/reglas";
-import { promptVigente } from "@/lib/config/prompts";
+import { promptsVigentes } from "@/lib/db/prompts";
 import { NOMBRE_VALIDACION, VALIDACIONES } from "@/lib/domain/types";
 import { Encabezado, Etiqueta, Kpi, Tarjeta, fmtNum, fmtPct } from "@/components/ui";
 import { exigirUsuario } from "@/lib/auth/sesion";
@@ -15,7 +15,7 @@ const TIPO_VALIDACION: Record<string, string> = { V1: "Regla", V2: "Regla", V3A:
 export default async function Inicio() {
   const u = await exigirUsuario();
   if (u.rol === "medico") redirect("/medico"); // el médico entra directo a su bandeja
-  const [ds, pruebas] = await Promise.all([datasetDemo(), ejecutarSetPrueba()]);
+  const [ds, pruebas, prompts] = await Promise.all([datasetDemo(), ejecutarSetPrueba(), promptsVigentes()]);
   const k = calcularKpis(ds, {});
   const v = verificarCadena(ds.log.listar());
   const accesos = [
@@ -56,7 +56,7 @@ export default async function Inicio() {
             ))}
           </ul>
           <div className="mt-4 border-t border-borde pt-3 text-xs text-texto-2">
-            Reglas {reglasVigentes().version} · prompts {promptVigente("V3A").version}, {promptVigente("V5").version}
+            Reglas {reglasVigentes().version} · prompts {prompts.V3A.version}, {prompts.V5.version}
           </div>
         </Tarjeta>
       </div>

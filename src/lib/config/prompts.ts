@@ -170,6 +170,47 @@ CONCLUSIÓN:
 
 export const HISTORIAL_PROMPTS: ConfigPrompt[] = [PROMPT_V3A_1_0, PROMPT_V5_1_0];
 
+/** Versión de prompt guardada en la base (solo cambia el texto de instrucciones; esquema y reglas de nivel son del código). */
+export interface FilaPrompt {
+  id: string;
+  validacion: "V3A" | "V5";
+  version: string;
+  estado: "borrador" | "vigente" | "retirada" | "descartada";
+  sistema: string;
+  motivo: string;
+  base_version: string | null;
+  autor: string;
+  creado_en: string;
+  actualizado_en: string;
+  probado_por: string | null;
+  probado_en: string | null;
+  aprobado_por: string | null;
+  aprobado_en: string | null;
+}
+
+/** Prompt efectivo de una versión guardada: la base del código con el texto y los metadatos de esa versión. */
+export function promptDesdeFila(f: FilaPrompt): ConfigPrompt {
+  const base = HISTORIAL_PROMPTS.find((x) => x.validacion === f.validacion)!;
+  return {
+    ...base,
+    version: f.version,
+    estado: f.estado === "descartada" ? "retirada" : f.estado,
+    sistema: f.sistema,
+    motivo: f.motivo,
+    autor: f.autor,
+    fecha: f.creado_en.slice(0, 10),
+    aprobadoPor: f.aprobado_por ?? undefined,
+    vigenteDesde: f.aprobado_en?.slice(0, 10),
+  };
+}
+
+/** Siguiente número de versión: v3a-prompt-1.0.0 → v3a-prompt-1.1.0. */
+export function siguienteVersion(validacion: "V3A" | "V5", existentes: string[]): string {
+  const pref = `${validacion.toLowerCase()}-prompt-1.`;
+  const menores = [0, ...existentes.filter((v) => v.startsWith(pref)).map((v) => Number(v.slice(pref.length).split(".")[0]) || 0)];
+  return `${pref}${Math.max(...menores) + 1}.0`;
+}
+
 export function promptVigente(v: "V3A" | "V5"): ConfigPrompt {
   const p = HISTORIAL_PROMPTS.find((x) => x.validacion === v && x.estado === "vigente");
   if (!p) throw new Error(`No hay prompt vigente para ${v}`);

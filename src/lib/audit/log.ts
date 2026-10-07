@@ -20,7 +20,11 @@ export type TipoEvento =
   | "sesion_iniciada"
   | "usuario_creado"
   | "usuario_modificado"
-  | "informe_asignado";
+  | "informe_asignado"
+  | "prompt_borrador_guardado"
+  | "prompt_probado"
+  | "prompt_activado"
+  | "prompt_descartado";
 
 export interface EntradaLog {
   secuencia: number;

@@ -15,6 +15,7 @@ import {
   registrarEvento,
 } from "../db/repositorio";
 import { leerInforme } from "./parser";
+import { promptsVigentes } from "../db/prompts";
 import { textoDePdf } from "./pdf";
 
 export interface ResultadoProceso {
@@ -92,7 +93,7 @@ export async function procesarPdf(p: {
 
     // Sin médico no hay con qué comparar en V2 (duplicado del mismo médico).
     const historial = medicoId === SIN_ASIGNAR ? [] : await historialMedico(medicoId, tipoEstudio, turnoId);
-    const r: ResultadoInforme = await validarInforme(informe, { turno, historial }, { usarIa: true });
+    const r: ResultadoInforme = await validarInforme(informe, { turno, historial }, { usarIa: true, prompts: await promptsVigentes() });
     await guardarInformeValidado(informe, r, { archivoDriveId: p.origen === "drive" ? idArchivo : undefined, hashArchivo });
 
     // Log sin datos identificatorios del paciente.

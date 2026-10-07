@@ -20,6 +20,10 @@ const NOMBRE_EVENTO: Record<string, string> = {
   usuario_creado: "Usuario creado",
   usuario_modificado: "Usuario modificado",
   informe_asignado: "Médico asignado al informe",
+  prompt_borrador_guardado: "Prompt: borrador guardado",
+  prompt_probado: "Prompt: borrador probado",
+  prompt_activado: "Prompt: versión aprobada y vigente",
+  prompt_descartado: "Prompt: borrador descartado",
 };
 
 export default async function Auditoria({ searchParams }: PageProps<"/auditoria">) {

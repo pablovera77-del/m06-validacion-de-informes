@@ -1,4 +1,5 @@
 import { reglasVigentes, type ConfigReglas } from "../config/reglas";
+import type { ConfigPrompt } from "../config/prompts";
 import type { ContextoValidacion, Informe, ResultadoInforme } from "../domain/types";
 import { proveedorConfigurado, type ProveedorLlm } from "./llm";
 
@@ -22,6 +23,8 @@ export interface OpcionesMotor {
    * nunca consumen la API de pago.
    */
   usarIa?: boolean;
+  /** Prompts vigentes leídos de la base (si no se pasan, se usan los del código). */
+  prompts?: Partial<Record<"V3A" | "V5", ConfigPrompt>>;
   ahora?: Date;
 }
 
@@ -34,10 +37,10 @@ export async function validarInforme(informe: Informe, ctx: ContextoValidacion, 
   const resultados = [
     validarCampos(informe, reglas),
     validarDuplicado(informe, ctx, reglas),
-    await validarBirads(informe, reglas, opts.proveedor ?? proveedorSegun(opts.usarIa)),
+    await validarBirads(informe, reglas, opts.proveedor ?? proveedorSegun(opts.usarIa), opts.prompts?.V3A),
     validarDensitometria(informe, reglas),
     validarIdentidad(informe, ctx, reglas),
-    await validarOrganos(informe, reglas, opts.proveedor ?? proveedorSegun(opts.usarIa)),
+    await validarOrganos(informe, reglas, opts.proveedor ?? proveedorSegun(opts.usarIa), opts.prompts?.V5),
   ];
   const alertas = resultados.flatMap((r) => r.alertas);
   return {

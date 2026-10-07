@@ -14,6 +14,7 @@ const mem = vi.hoisted(() => ({
 }));
 
 vi.mock("../db/cliente", () => ({ exigirDb: () => ({ from: () => ({ select: () => ({ eq: async () => ({ data: [] }) }) }) }) }));
+vi.mock("../db/prompts", () => ({ promptsVigentes: async () => ({}) }));
 vi.mock("../db/repositorio", () => ({
   archivoYaProcesado: async () => false,
   obtenerTurno: async (id: string) => mem.turnos.get(id),

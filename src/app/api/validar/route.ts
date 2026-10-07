@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TIPOS_ESTUDIO, type Informe } from "@/lib/domain/types";
 import { validarInforme } from "@/lib/engine/motor";
+import { promptsVigentes } from "@/lib/db/prompts";
 
 /**
  * Contrato de la etapa 2: el sistema de gestión de imágenes envía el informe ya extraído
@@ -42,6 +43,6 @@ export async function POST(req: Request) {
   if (!parsed.success) return Response.json({ error: "Solicitud inválida", detalle: parsed.error.issues }, { status: 400 });
   const { informe, turno, historial } = parsed.data;
   const conOrigen = (i: typeof informe): Informe => ({ ...i, origen: "api" });
-  const resultado = await validarInforme(conOrigen(informe), { turno, historial: historial.map(conOrigen) }, { usarIa: true });
+  const resultado = await validarInforme(conOrigen(informe), { turno, historial: historial.map(conOrigen) }, { usarIa: true, prompts: await promptsVigentes() });
   return Response.json(resultado);
 }

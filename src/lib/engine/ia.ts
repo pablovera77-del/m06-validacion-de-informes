@@ -54,9 +54,9 @@ function noEjecutada(v: "V3A" | "V5", error: unknown): ResultadoValidacion {
 }
 
 /** V3A: coherencia BI-RADS / hallazgos (solo mamografía). */
-export async function validarBirads(informe: Informe, reglas: ConfigReglas, proveedor?: ProveedorLlm): Promise<ResultadoValidacion> {
+export async function validarBirads(informe: Informe, reglas: ConfigReglas, proveedor?: ProveedorLlm, promptElegido?: ConfigPrompt): Promise<ResultadoValidacion> {
   if (informe.tipoEstudio !== "mamografia") return { validacion: "V3A", estado: "no_aplica", alertas: [] };
-  const prompt = promptVigente("V3A");
+  const prompt = promptElegido ?? promptVigente("V3A");
   try {
     const { salida, traza } = await ejecutar<import("../config/prompts").SalidaV3A>({ informe, prompt, schema: salidaV3ASchema, proveedor });
     const alertas: Alerta[] = [];
@@ -113,13 +113,13 @@ export function detectarMarcadores(informe: Informe, reglas: ConfigReglas): Aler
 }
 
 /** V5: órgano ausente y medidas incompletas. */
-export async function validarOrganos(informe: Informe, reglas: ConfigReglas, proveedor?: ProveedorLlm): Promise<ResultadoValidacion> {
+export async function validarOrganos(informe: Informe, reglas: ConfigReglas, proveedor?: ProveedorLlm, promptElegido?: ConfigPrompt): Promise<ResultadoValidacion> {
   const organos = reglas.v5.organos[informe.tipoEstudio];
   const marcadores = detectarMarcadores(informe, reglas);
   if (!organos?.length) {
     return { validacion: "V5", estado: marcadores.length ? "ejecutada" : "no_aplica", alertas: marcadores };
   }
-  const prompt = promptVigente("V5");
+  const prompt = promptElegido ?? promptVigente("V5");
   try {
     const { salida, traza } = await ejecutar<import("../config/prompts").SalidaV5>({ informe, prompt, organos, schema: salidaV5Schema, proveedor });
     // Un órgano que ya tiene alerta de marcador en su oración no se alerta dos veces.

@@ -67,3 +67,18 @@ describe("privacidad del prompt (HU23)", () => {
     }
   });
 });
+
+import { diffLineas } from "../config/diff";
+import { siguienteVersion } from "../config/prompts";
+
+describe("versiones de prompts", () => {
+  it("diff por líneas marca agregadas y quitadas", () => {
+    const d = diffLineas("a\nb\nc", "a\nB\nc\nd");
+    expect(d.filter((x) => x.tipo === "quitada").map((x) => x.texto)).toEqual(["b"]);
+    expect(d.filter((x) => x.tipo === "agregada").map((x) => x.texto)).toEqual(["B", "d"]);
+  });
+  it("numera la siguiente versión sin repetir", () => {
+    expect(siguienteVersion("V3A", ["v3a-prompt-1.0.0"])).toBe("v3a-prompt-1.1.0");
+    expect(siguienteVersion("V5", ["v5-prompt-1.0.0", "v5-prompt-1.3.0", "v3a-prompt-1.7.0"])).toBe("v5-prompt-1.4.0");
+  });
+});
