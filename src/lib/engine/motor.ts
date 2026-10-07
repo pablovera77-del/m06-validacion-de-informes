@@ -1,6 +1,11 @@
 import { reglasVigentes, type ConfigReglas } from "../config/reglas";
 import type { ContextoValidacion, Informe, ResultadoInforme } from "../domain/types";
-import type { ProveedorLlm } from "./llm";
+import { proveedorConfigurado, type ProveedorLlm } from "./llm";
+
+/** Proveedor real solo si se pide explícitamente; undefined → simulador local. */
+function proveedorSegun(usarIa?: boolean): ProveedorLlm | undefined {
+  return usarIa ? (proveedorConfigurado() ?? undefined) : undefined;
+}
 import { validarBirads, validarOrganos } from "./ia";
 import { nivelMaximo } from "./util";
 import { validarCampos } from "./v1-campos";
@@ -11,6 +16,12 @@ import { validarIdentidad } from "./v4-identidad";
 export interface OpcionesMotor {
   reglas?: ConfigReglas;
   proveedor?: ProveedorLlm;
+  /**
+   * true = usar el modelo de IA configurado (solo informes reales: ingesta y API).
+   * Por defecto se usa el simulador local: los datos sintéticos de la demo y el set de prueba
+   * nunca consumen la API de pago.
+   */
+  usarIa?: boolean;
   ahora?: Date;
 }
 
@@ -23,10 +34,10 @@ export async function validarInforme(informe: Informe, ctx: ContextoValidacion, 
   const resultados = [
     validarCampos(informe, reglas),
     validarDuplicado(informe, ctx, reglas),
-    await validarBirads(informe, reglas, opts.proveedor),
+    await validarBirads(informe, reglas, opts.proveedor ?? proveedorSegun(opts.usarIa)),
     validarDensitometria(informe, reglas),
     validarIdentidad(informe, ctx, reglas),
-    await validarOrganos(informe, reglas, opts.proveedor),
+    await validarOrganos(informe, reglas, opts.proveedor ?? proveedorSegun(opts.usarIa)),
   ];
   const alertas = resultados.flatMap((r) => r.alertas);
   return {

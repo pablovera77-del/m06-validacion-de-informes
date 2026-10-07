@@ -92,7 +92,7 @@ export async function procesarPdf(p: {
 
     // Sin médico no hay con qué comparar en V2 (duplicado del mismo médico).
     const historial = medicoId === SIN_ASIGNAR ? [] : await historialMedico(medicoId, tipoEstudio, turnoId);
-    const r: ResultadoInforme = await validarInforme(informe, { turno, historial });
+    const r: ResultadoInforme = await validarInforme(informe, { turno, historial }, { usarIa: true });
     await guardarInformeValidado(informe, r, { archivoDriveId: p.origen === "drive" ? idArchivo : undefined, hashArchivo });
 
     // Log sin datos identificatorios del paciente.

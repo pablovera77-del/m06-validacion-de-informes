@@ -42,6 +42,6 @@ export async function POST(req: Request) {
   if (!parsed.success) return Response.json({ error: "Solicitud inválida", detalle: parsed.error.issues }, { status: 400 });
   const { informe, turno, historial } = parsed.data;
   const conOrigen = (i: typeof informe): Informe => ({ ...i, origen: "api" });
-  const resultado = await validarInforme(conOrigen(informe), { turno, historial: historial.map(conOrigen) });
+  const resultado = await validarInforme(conOrigen(informe), { turno, historial: historial.map(conOrigen) }, { usarIa: true });
   return Response.json(resultado);
 }

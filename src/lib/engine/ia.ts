@@ -2,7 +2,7 @@ import { armarEntrada, promptVigente, salidaV3ASchema, salidaV5Schema, type Conf
 import type { ConfigReglas, OrganoEsperado } from "../config/reglas";
 import type { Alerta, Informe, ResultadoValidacion, SeccionesClinicas, TrazaLlm } from "../domain/types";
 import { NOMBRE_ESTUDIO } from "../domain/types";
-import { proveedorConfigurado, type ProveedorLlm } from "./llm";
+import type { ProveedorLlm } from "./llm";
 import { ProveedorSimulado } from "./simulador";
 import { crearAlerta, sha256 } from "./util";
 
@@ -26,7 +26,8 @@ async function ejecutar<T>(params: {
     secciones,
     organos: params.organos?.map((o) => `${o.id} (${o.nombre})`).join(", "),
   });
-  const proveedor = params.proveedor ?? proveedorConfigurado() ?? new ProveedorSimulado().preparar(secciones, params.organos);
+  // Sin proveedor explícito se usa el simulador: el modelo de pago solo se llama para informes reales (ver motor.ts).
+  const proveedor = params.proveedor ?? new ProveedorSimulado().preparar(secciones, params.organos);
   const t0 = Date.now();
   const salida = (await proveedor.generar({ prompt: params.prompt, entrada, schema: params.schema })) as T;
   return {
